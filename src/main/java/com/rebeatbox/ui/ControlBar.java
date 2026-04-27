@@ -9,116 +9,109 @@ import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 
 public class ControlBar extends JPanel {
-    private JButton playButton;
-    private JButton pauseButton;
-    private JButton stopButton;
-    private JButton restartButton;
-    private JSlider bpmSlider;
-    private JLabel bpmLabel;
-    private JSlider volumeSlider;
-    private JLabel volumeLabel;
+    private JButton restartButton, playButton, pauseButton, stopButton, openButton;
+    private JSlider bpmSlider, volumeSlider;
+    private JLabel bpmLabel, volumeLabel, timeLabel;
     private JProgressBar progressBar;
-    private JLabel timeLabel;
-    private JButton openButton;
 
     private PlaybackController controller;
     private Consumer<JFileChooser> onFileOpen;
+    private Timer stateTimer;
 
     public ControlBar() {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 8, 6));
+        setLayout(new FlowLayout(FlowLayout.LEFT, 6, 4));
         setBackground(new Color(0x16213e));
 
         // Transport buttons
-        restartButton = createTransportButton("⏮", "Restart"); // ⏮
-        playButton = createTransportButton("▶", "Play"); // ▶
-        pauseButton = createTransportButton("⏸", "Pause"); // ⏸
-        stopButton = createTransportButton("⏹", "Stop"); // ⏹
+        restartButton = createTransportButton("⏮", "Restart");
+        playButton = createTransportButton("▶", "Play");
+        pauseButton = createTransportButton("⏸", "Pause");
+        stopButton = createTransportButton("⏹", "Stop");
 
         add(restartButton);
         add(playButton);
         add(pauseButton);
         add(stopButton);
+        add(Box.createHorizontalStrut(10));
 
-        add(Box.createHorizontalStrut(16));
-
-        // BPM slider
+        // BPM
         bpmLabel = new JLabel("BPM: 120");
         bpmLabel.setForeground(new Color(0xe0e0e0));
         bpmSlider = new JSlider(20, 300, 120);
-        bpmSlider.setPreferredSize(new Dimension(180, 40));
-        bpmSlider.addChangeListener(e -> {
-            int bpm = bpmSlider.getValue();
-            bpmLabel.setText("BPM: " + bpm);
-            if (controller != null) controller.setBPM(bpm);
-        });
-
+        bpmSlider.setPreferredSize(new Dimension(140, 36));
         add(bpmLabel);
         add(bpmSlider);
+        add(Box.createHorizontalStrut(10));
 
-        add(Box.createHorizontalStrut(16));
-
-        // Volume slider
+        // Volume
         volumeLabel = new JLabel("Vol: 75%");
         volumeLabel.setForeground(new Color(0xe0e0e0));
         volumeSlider = new JSlider(0, 100, 75);
-        volumeSlider.setPreferredSize(new Dimension(120, 40));
-        volumeSlider.addChangeListener(e -> {
-            int vol = volumeSlider.getValue();
-            volumeLabel.setText("Vol: " + vol + "%");
-            if (controller != null) controller.setVolume(vol / 100.0f);
-        });
-
+        volumeSlider.setPreferredSize(new Dimension(100, 36));
         add(volumeLabel);
         add(volumeSlider);
+        add(Box.createHorizontalStrut(10));
 
-        add(Box.createHorizontalStrut(16));
-
-        // Time label
+        // Time
         timeLabel = new JLabel("00:00 / 00:00");
         timeLabel.setForeground(new Color(0xe0e0e0));
         add(timeLabel);
 
         // Progress bar
         progressBar = new JProgressBar(0, 100);
-        progressBar.setPreferredSize(new Dimension(300, 20));
+        progressBar.setPreferredSize(new Dimension(240, 18));
         progressBar.setStringPainted(false);
+        add(progressBar);
+        add(Box.createHorizontalStrut(4));
+
+        // File open
+        openButton = new JButton("📂");
+        openButton.setPreferredSize(new Dimension(36, 36));
+        openButton.setToolTipText("Open MIDI file");
+        add(openButton);
+
+        // Timer for progress + state sync
+        stateTimer = new Timer(100, e -> syncButtonStates());
+        stateTimer.setInitialDelay(0);
+        stateTimer.start();
+
+        // Wire slider listeners
+        bpmSlider.addChangeListener(e -> {
+            if (controller != null) {
+                int bpm = bpmSlider.getValue();
+                controller.setBPM(bpm);
+                bpmLabel.setText("BPM: " + bpm);
+            }
+        });
+
+        volumeSlider.addChangeListener(e -> {
+            if (controller != null) {
+                int vol = volumeSlider.getValue();
+                controller.setVolume(vol / 100.0f);
+                volumeLabel.setText("Vol: " + vol + "%");
+            }
+        });
+
+        // Progress bar click-to-seek
         progressBar.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (controller != null) {
-                    int width = progressBar.getWidth();
-                    double fraction = (double) e.getX() / width;
-                    long seekPos = (long) (fraction * controller.getMicrosecondLength());
-                    controller.seek(seekPos);
-                }
+                if (controller == null) return;
+                int w = progressBar.getWidth();
+                if (w <= 0) return;
+                controller.seek((long) ((double) e.getX() / w * controller.getMicrosecondLength()));
             }
         });
-        add(progressBar);
 
-        add(Box.createHorizontalStrut(8));
-
-        // File open button
-        openButton = new JButton("📂"); // 📂
-        openButton.setPreferredSize(new Dimension(36, 36));
-        openButton.setToolTipText("Open MIDI file");
+        // File open
         openButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Open MIDI File");
             chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MIDI Files (*.mid)", "mid"));
             if (onFileOpen != null) onFileOpen.accept(chooser);
         });
-        add(openButton);
 
-        // Initial button states
-        setTransportEnabled(false);
-    }
-
-    private JButton createTransportButton(String text, String tooltip) {
-        JButton btn = new JButton(text);
-        btn.setPreferredSize(new Dimension(40, 40));
-        btn.setToolTipText(tooltip);
-        btn.setFocusable(false);
-        return btn;
+        syncButtonStates();
     }
 
     public void wireEngine(PlaybackController controller) {
@@ -129,31 +122,7 @@ public class ControlBar extends JPanel {
         stopButton.addActionListener(e -> controller.stop());
         restartButton.addActionListener(e -> controller.restart());
 
-        // Progress update timer
-        new Timer(100, e -> {
-            if (controller.getState() == PlaybackController.State.PLAYING) {
-                long pos = controller.getMicrosecondPosition();
-                long len = controller.getMicrosecondLength();
-                if (len > 0) {
-                    int pct = (int) ((pos * 100) / len);
-                    progressBar.setValue(pct);
-                    timeLabel.setText(formatTime(pos) + " / " + formatTime(len));
-                }
-                // Update button states
-                setTransportEnabled(true);
-                playButton.setEnabled(false);
-                pauseButton.setEnabled(true);
-                stopButton.setEnabled(true);
-            } else if (controller.getState() == PlaybackController.State.PAUSED) {
-                playButton.setEnabled(true);
-                pauseButton.setEnabled(false);
-                stopButton.setEnabled(true);
-            } else {
-                playButton.setEnabled(true);
-                pauseButton.setEnabled(false);
-                stopButton.setEnabled(false);
-            }
-        }).start();
+        syncButtonStates();
     }
 
     public void setOnFileOpen(Consumer<JFileChooser> handler) {
@@ -161,23 +130,78 @@ public class ControlBar extends JPanel {
     }
 
     public void onFileLoaded() {
-        setTransportEnabled(true);
-        playButton.setEnabled(true);
-        stopButton.setEnabled(false);
-        pauseButton.setEnabled(false);
+        if (controller != null) {
+            int nativeBpm = controller.getNativeBPM();
+            bpmSlider.setValue(nativeBpm);
+            bpmLabel.setText("BPM: " + nativeBpm);
+        }
+        syncButtonStates();
     }
 
-    private void setTransportEnabled(boolean enabled) {
-        playButton.setEnabled(enabled);
-        pauseButton.setEnabled(false);
-        stopButton.setEnabled(false);
-        restartButton.setEnabled(enabled);
+    private void syncButtonStates() {
+        if (controller == null) {
+            playButton.setEnabled(false);
+            pauseButton.setEnabled(false);
+            stopButton.setEnabled(false);
+            restartButton.setEnabled(false);
+            progressBar.setValue(0);
+            timeLabel.setText("00:00 / 00:00");
+            return;
+        }
+
+        boolean hasSequence = controller.getMicrosecondLength() > 0;
+        PlaybackController.State state = controller.getState();
+
+        if (!hasSequence) {
+            playButton.setEnabled(false);
+            pauseButton.setEnabled(false);
+            stopButton.setEnabled(false);
+            restartButton.setEnabled(false);
+            progressBar.setValue(0);
+            timeLabel.setText("00:00 / 00:00");
+            return;
+        }
+
+        switch (state) {
+            case PLAYING:
+                playButton.setEnabled(false);
+                pauseButton.setEnabled(true);
+                stopButton.setEnabled(true);
+                restartButton.setEnabled(true);
+                break;
+            case PAUSED:
+                playButton.setEnabled(true);
+                pauseButton.setEnabled(false);
+                stopButton.setEnabled(true);
+                restartButton.setEnabled(true);
+                break;
+            case STOPPED:
+                playButton.setEnabled(true);
+                pauseButton.setEnabled(false);
+                stopButton.setEnabled(false);
+                restartButton.setEnabled(true);
+                break;
+        }
+
+        // Progress bar
+        long pos = controller.getMicrosecondPosition();
+        long len = controller.getMicrosecondLength();
+        if (len > 0) {
+            progressBar.setValue((int) (pos * 100 / len));
+            timeLabel.setText(formatTime(pos) + " / " + formatTime(len));
+        }
+    }
+
+    private JButton createTransportButton(String text, String tooltip) {
+        JButton btn = new JButton(text);
+        btn.setPreferredSize(new Dimension(38, 38));
+        btn.setToolTipText(tooltip);
+        btn.setFocusable(false);
+        return btn;
     }
 
     private String formatTime(long micros) {
-        long totalSec = micros / 1_000_000;
-        long min = totalSec / 60;
-        long sec = totalSec % 60;
-        return String.format("%02d:%02d", min, sec);
+        long sec = micros / 1_000_000;
+        return String.format("%02d:%02d", sec / 60, sec % 60);
     }
 }

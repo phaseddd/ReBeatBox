@@ -19,6 +19,7 @@ public class PlaybackController {
     private State state = State.STOPPED;
     private float volume = 0.75f;
     private int bpm = 120;
+    private int nativeBpm = 120;
     private final boolean[] activeNotes = new boolean[128];
 
     public PlaybackController(Synthesizer synthesizer, NoteEventBus eventBus) throws MidiUnavailableException {
@@ -126,7 +127,9 @@ public class PlaybackController {
     public void load(File midiFile) throws InvalidMidiDataException, IOException {
         Sequence sequence = loader.load(midiFile);
         sequencer.setSequence(sequence);
-        sequencer.setTempoInBPM(bpm);
+        // Read native tempo from MIDI file instead of overriding
+        this.bpm = Math.round(sequencer.getTempoInBPM());
+        this.nativeBpm = this.bpm;
         state = State.STOPPED;
         resetActiveNotes();
         eventBus.fire(Collections.emptySet());
@@ -140,10 +143,8 @@ public class PlaybackController {
     }
 
     public void pause() {
-        if (state == State.PLAYING) {
-            sequencer.stop();
-            state = State.PAUSED;
-        }
+        state = State.PAUSED;
+        sequencer.stop();
     }
 
     public void stop() {
@@ -164,6 +165,10 @@ public class PlaybackController {
     public void setBPM(int bpm) {
         this.bpm = Math.max(20, Math.min(300, bpm));
         sequencer.setTempoInBPM(this.bpm);
+    }
+
+    public int getNativeBPM() {
+        return nativeBpm;
     }
 
     public void setVolume(float vol) {

@@ -23,8 +23,8 @@ public class ReBeatBoxWindow extends JFrame {
     public ReBeatBoxWindow() {
         setTitle("ReBeatBox");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 700);
-        setMinimumSize(new Dimension(800, 500));
+        setSize(1280, 720);
+        setMinimumSize(new Dimension(900, 500));
         setLocationRelativeTo(null);
 
         setLayout(new BorderLayout());
