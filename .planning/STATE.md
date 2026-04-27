@@ -12,9 +12,11 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 | Field | Value |
 |-------|-------|
 | Phase | 1 — Foundation |
-| Status | ✓ Complete |
+| Status | ✓ Shipped |
 | Started | 2026-04-27 |
 | Completed | 2026-04-27 |
+| Shipped | 2026-04-28 |
+| URL | https://github.com/phaseddd/ReBeatBox |
 | Requirements | PLAY-01, PLAY-02, PLAY-03, PLAY-04, PLAY-05, UI-01, CONT-02 |
 | Plans | 4/4 complete |
 | Waves | 3/3 complete |
@@ -35,4 +37,4 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 
 ---
 *State initialized: 2026-04-27*
-*Last updated: 2026-04-27 after Phase 1 discussion*
+*Last updated: 2026-04-28 — Phase 1 shipped*
