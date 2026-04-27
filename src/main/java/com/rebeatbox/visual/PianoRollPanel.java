@@ -339,28 +339,29 @@ public class PianoRollPanel extends JPanel {
 
     /**
      * Finds the index of the first RenderNote with {@code startMicros >= windowStart}
-     * using {@link Collections#binarySearch} with a sentinel note.
+     * using manual binary search (avoids creating a RenderNote sentinel which would
+     * fail validation when windowStart is negative).
      *
-     * @param windowStart lower bound of the visible time window
+     * @param windowStart lower bound of the visible time window (may be negative at start of playback)
      * @return index of the first visible note, or -1 if no notes are in range
      */
     private int binarySearchFirstVisible(long windowStart) {
-        // Create a sentinel RenderNote at windowStart for binary search
-        RenderNote sentinel = new RenderNote(60, windowStart, windowStart + 1, 64, 0);
-        int idx = Collections.binarySearch(renderNotes, sentinel,
-            Comparator.comparingLong(RenderNote::startMicros));
+        if (renderNotes.isEmpty()) return -1;
 
-        if (idx < 0) {
-            idx = -(idx + 1); // Convert to insertion point
-        } else {
-            // Exact match found — walk backward to the first occurrence
-            while (idx > 0 && renderNotes.get(idx - 1).startMicros() == windowStart) {
-                idx--;
+        int lo = 0, hi = renderNotes.size() - 1;
+        int result = renderNotes.size();
+
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (renderNotes.get(mid).startMicros() >= windowStart) {
+                result = mid;
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
             }
         }
 
-        if (idx >= renderNotes.size()) return -1;
-        return idx;
+        return result >= renderNotes.size() ? -1 : result;
     }
 
     /**
