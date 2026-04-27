@@ -33,6 +33,51 @@ dependencies {
     implementation 'org.pushing-pixels:radiance-component:8.5.0'
 }
 
+// Auto-download SoundFont if not present (151MB, too large for Git)
+task downloadSoundFont {
+    doLast {
+        def sfDir = file('src/main/resources/soundfonts')
+        def sfFile = file("$sfDir/FluidR3_GM.sf2")
+        if (sfFile.exists() && sfFile.length() > 100_000_000) {
+            logger.lifecycle("SoundFont already present: ${sfFile.length() / 1_000_000} MB")
+            return
+        }
+        sfDir.mkdirs()
+        def urls = [
+            'https://dn710203.ca.archive.org/0/items/fluidr3-gm-gs/FluidR3_GM_GS.sf2',
+            'https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2'
+        ]
+        def downloaded = false
+        for (url in urls) {
+            try {
+                logger.lifecycle("Downloading SoundFont (144MB)...")
+                logger.lifecycle("  -> $url")
+                sfFile.withOutputStream { out ->
+                    out << new URL(url).openStream()
+                }
+                if (sfFile.length() > 100_000_000) {
+                    logger.lifecycle("Downloaded: ${sfFile.length() / 1_000_000} MB")
+                    downloaded = true
+                    break
+                }
+            } catch (Exception e) {
+                logger.warn("Failed: $url — ${e.message}")
+            }
+        }
+        if (!downloaded) {
+            logger.warn("=" * 60)
+            logger.warn("SoundFont download failed (network restricted?).")
+            logger.warn("The app will use JDK default soundbank with lower audio quality.")
+            logger.warn("To fix: manually download FluidR3_GM.sf2 (144MB) and place it at:")
+            logger.warn("  src/main/resources/soundfonts/FluidR3_GM.sf2")
+            logger.warn("  Download from: https://archive.org/download/fluidr3-gm-gs/FluidR3_GM_GS.sf2")
+            logger.warn("  Rename to FluidR3_GM.sf2 after downloading.")
+            logger.warn("=" * 60)
+        }
+    }
+}
+processResources.dependsOn downloadSoundFont
+
 jar {
     manifest {
         attributes 'Main-Class': 'com.rebeatbox.App'

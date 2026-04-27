@@ -33,7 +33,5 @@ Thumbs.db
 # GSD Planning (if commit_docs=false — currently committed)
 # .planning/
 
-# Secrets
-*.env
-*.env.local
-secrets.properties
+# SoundFont (auto-downloaded by Gradle — too large for Git)
+src/main/resources/soundfonts/*.sf2
