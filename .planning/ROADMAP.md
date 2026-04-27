@@ -63,6 +63,19 @@ Phase 5 (parallel with 2-4, gates on 4 for ship)
 - VIS-02: Falling notes animation (Synthesia-style)
 - VIS-03: Playback position indicator (playhead/highlight)
 
+**Plans:** 2 plans in 2 waves
+
+Plans:
+- [ ] 02-01-PLAN.md — RenderNote data model, MIDI pre-scan, pitch-to-neon-color mapping
+- [ ] 02-02-PLAN.md — PianoRollPanel: three-layer compositing, GaussianBlur glow, 60fps animation, ReBeatBoxWindow integration
+
+**Wave Structure:**
+
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 02-01 | Data layer (no UI dependencies) |
+| 2 | 02-02 | Rendering + integration (depends on 02-01) |
+
 **Success Criteria:**
 1. Piano roll displays with correct note-to-pitch grid mapping
 2. During playback, note bars scroll/fall in sync with audio (no visible lag)
@@ -71,7 +84,7 @@ Phase 5 (parallel with 2-4, gates on 4 for ship)
 5. Visualization works at 60fps for MIDI files with up to 20 simultaneous notes
 
 **UI hint:** yes
-**Key files:** `visual/PianoRollPanel.java`, `visual/FallingNoteRenderer.java`, `visual/NoteColorMapper.java`, `engine/NoteEventBus.java`
+**Key files:** `visual/PianoRollPanel.java`, `visual/RenderNote.java`, `visual/MidiPreScanner.java`, `visual/NoteColorMapper.java`, `ui/ReBeatBoxWindow.java`
 
 ---
 
@@ -175,3 +188,4 @@ Phase 5 (parallel with 2-4, gates on 4 for ship)
 
 ---
 *Roadmap created: 2026-04-27*
+*Last updated: 2026-04-28 — Phase 2 planned*
