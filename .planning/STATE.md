@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 | 5     | ○      | 0/?   | 0%       |
 
 ### Resume Info
-- Stopped at: Phase 1 context gathered
-- Resume file: `.planning/phases/01-foundation/01-CONTEXT.md`
+- Stopped at: Phase 2 context gathered
+- Resume file: `.planning/phases/02-visualization/02-CONTEXT.md`
 
 ---
 *State initialized: 2026-04-27*
