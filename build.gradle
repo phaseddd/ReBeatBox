@@ -31,6 +31,13 @@ dependencies {
     implementation 'org.pushing-pixels:radiance-animation:8.5.0'
     implementation 'org.pushing-pixels:radiance-theming:8.5.0'
     implementation 'org.pushing-pixels:radiance-component:8.5.0'
+
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 // Auto-download SoundFont if not present (151MB, too large for Git)
