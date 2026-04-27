@@ -101,6 +101,7 @@ Requirements covered: VIS-01, VIS-02, VIS-03
 - Per-track layer toggle (show/hide individual instrument tracks) → v2 (MTRK-01, MTRK-02)
 - Time-bucket indexing for RenderNote (optimization for very long MIDI files) → add only if profiling shows need
 - Multi-track color differentiation in waterfall → v2
+- GaussianBlur glow 在小/快音符上肉眼不可见（5x5 kernel 偏保守）→ Phase 4 调大 kernel 或增强 glow alpha (see: UAT test 3, todo amplify-blur-visibility.md)
 </deferred>
 
 ---
