@@ -2,13 +2,16 @@ package com.rebeatbox.visual;
 
 import com.rebeatbox.engine.PlaybackController;
 
+import javax.sound.midi.Sequence;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Synthesia-style piano roll visualization panel.
@@ -19,6 +22,11 @@ import java.util.List;
  *   <li>Per-note BufferedImage with GaussianBlur glow, alpha-composited</li>
  *   <li>Foreground: trigger line, mini keyboard, subtle grid lines</li>
  * </ol>
+ *
+ * <p>Animation driven by {@code javax.swing.Timer(16ms)} polling
+ * {@link PlaybackController#getMicrosecondPosition()} directly (D-13, D-15).
+ * Note state determined by binary search on pre-scanned {@code List<RenderNote>},
+ * NOT via NoteEventBus (D-15).
  *
  * <p>Coordinate system:
  * <ul>
@@ -59,6 +67,9 @@ public class PianoRollPanel extends JPanel {
     /** Padding around each note bar BufferedImage to accommodate glow spread. */
     private static final int BLUR_PAD = 6;
 
+    /** Animation timer interval in milliseconds (~62.5fps, close to 60fps per D-13). */
+    private static final int TIMER_INTERVAL_MS = 16;
+
     // White key MIDI note offsets within an octave
     private static final int[] WHITE_KEY_OFFSETS = {0, 2, 4, 5, 7, 9, 11};
     // Black key MIDI note offsets within an octave
@@ -78,11 +89,14 @@ public class PianoRollPanel extends JPanel {
     /** High end of the adaptive note range (inclusive). Default: C8 (108). */
     int noteRangeMax = 108;
 
-    /** Current playback position in microseconds, updated each timer tick (Task 3). */
+    /** Current playback position in microseconds, updated each timer tick. */
     long currentPositionMicros = 0;
 
     /** Phase accumulator for trigger line pulse animation (D-12). */
     float pulsePhase = 0.0f;
+
+    /** Swing Timer driving the 60fps repaint loop (D-13). Started in {@link #startAnimationLoop}. */
+    private Timer animationTimer;
 
     // --- Constructor ---
 
@@ -98,13 +112,84 @@ public class PianoRollPanel extends JPanel {
     // --- Public API ---
 
     /**
-     * Stores the playback controller reference.
-     * The animation loop is started in Task 3.
+     * Wires the playback controller and starts the animation loop.
      *
      * @param controller the playback controller; must not be null
      */
     public void setController(PlaybackController controller) {
         this.controller = controller;
+        startAnimationLoop();
+    }
+
+    /**
+     * Called after a MIDI file has been successfully loaded.
+     * Pre-scans the sequence using {@link MidiPreScanner#scan(Sequence)},
+     * computes the adaptive note range (D-02), and resets position tracking.
+     *
+     * <p>Ensures the animation timer is running so the newly loaded file
+     * immediately begins rendering.
+     */
+    public void onFileLoaded() {
+        if (controller == null) return;
+        Sequence seq = controller.getSequencer().getSequence();
+        if (seq == null) return;
+
+        // Pre-scan the MIDI data per D-10
+        renderNotes = MidiPreScanner.scan(seq);
+
+        // Compute adaptive note range per D-02
+        if (!renderNotes.isEmpty()) {
+            noteRangeMin = 127;
+            noteRangeMax = 0;
+            for (RenderNote note : renderNotes) {
+                if (note.pitch() < noteRangeMin) noteRangeMin = note.pitch();
+                if (note.pitch() > noteRangeMax) noteRangeMax = note.pitch();
+            }
+            // Add 1-semitone padding on each side
+            noteRangeMin = Math.max(0, noteRangeMin - 1);
+            noteRangeMax = Math.min(127, noteRangeMax + 1);
+        }
+
+        // Reset position tracking
+        currentPositionMicros = 0;
+
+        // Ensure timer is running
+        startAnimationLoop();
+
+        repaint();
+    }
+
+    /**
+     * Stops the animation timer. Call when the panel is being discarded.
+     */
+    public void dispose() {
+        if (animationTimer != null) {
+            animationTimer.stop();
+            animationTimer = null;
+        }
+    }
+
+    /**
+     * Returns the set of pitch values for notes currently sounding
+     * at {@code currentPositionMicros}, determined by scanning the pre-scanned
+     * RenderNote list (D-15).
+     *
+     * <p>Does NOT depend on NoteEventBus. Uses linear scan with early break
+     * — O(visible_notes) which is bounded by viewport culling.
+     *
+     * @return set of sounding MIDI pitches; empty if no file loaded or not playing
+     */
+    public Set<Integer> getSoundingNotes() {
+        Set<Integer> result = new HashSet<>();
+        if (renderNotes.isEmpty() || controller == null) return result;
+
+        long pos = currentPositionMicros;
+        for (RenderNote note : renderNotes) {
+            if (note.endMicros() <= pos) continue; // ended
+            if (note.startMicros() > pos) break;   // not started yet (beyond current pos)
+            result.add(note.pitch());
+        }
+        return result;
     }
 
     // --- Coordinate helpers ---
@@ -157,6 +242,43 @@ public class PianoRollPanel extends JPanel {
         }
     }
 
+    // --- Animation loop ---
+
+    /**
+     * Starts the 60fps animation timer (D-13). Safe to call multiple times.
+     *
+     * <p>The {@code javax.swing.Timer} fires callbacks on the EDT, so all
+     * {@code repaint()} calls are automatically thread-safe. Each tick:
+     * <ol>
+     *   <li>Polls {@link PlaybackController#getMicrosecondPosition()} for current time</li>
+     *   <li>Advances the trigger line pulse phase (D-12)</li>
+     *   <li>Calls {@code repaint()} to queue a fresh paint cycle</li>
+     * </ol>
+     *
+     * <p>Per D-14: the timer continues even when paused, but
+     * {@code getMicrosecondPosition()} returns a static value, so the visual
+     * freezes in place. Seek causes an instant position jump on the next tick.
+     */
+    private void startAnimationLoop() {
+        if (animationTimer != null && animationTimer.isRunning()) return;
+        animationTimer = new Timer(TIMER_INTERVAL_MS, e -> {
+            if (controller == null) return;
+
+            // Per D-13: directly poll controller position every frame
+            currentPositionMicros = controller.getMicrosecondPosition();
+
+            // Update pulse animation phase (D-12)
+            pulsePhase += 0.1f;
+            if (pulsePhase > 2.0 * Math.PI) {
+                pulsePhase -= (float) (2.0 * Math.PI);
+            }
+
+            repaint(); // queues a paintComponent call on EDT
+        });
+        animationTimer.setInitialDelay(0);
+        animationTimer.start();
+    }
+
     // --- Painting ---
 
     @Override
@@ -179,8 +301,6 @@ public class PianoRollPanel extends JPanel {
         drawMiniKeyboard(g2d);
         drawGridLines(g2d);
         drawTriggerLine(g2d);
-
-        // Note: Animation loop added in Task 3
     }
 
     // --- Layer 2: Note bars ---
@@ -522,16 +642,13 @@ public class PianoRollPanel extends JPanel {
      * <p>Two-pass rendering: a wide translucent cyan halo (8px stroke), then a
      * 2px bright cyan/white core line. The core line opacity pulses via a sine-wave
      * between 0.80 and 1.00 for a heartbeat feel.
-     *
-     * <p>For Task 2, uses a constant pulseAlpha of 1.0f. Pulse animation is wired
-     * in Task 3 when the Timer updates pulsePhase.
      */
     private void drawTriggerLine(Graphics2D g2d) {
         int ty = triggerLineY();
         int waterfallLeft = KEYBOARD_WIDTH;
         int waterfallRight = getWidth();
 
-        // Compute pulse alpha (constant for now; animated in Task 3)
+        // Compute pulse alpha (sine-based, 0.80 <-> 1.00, D-12)
         float pulseAlpha = 0.80f + 0.20f * (float) ((Math.sin(pulsePhase) + 1.0) / 2.0);
 
         // Enable antialiasing for smooth line rendering

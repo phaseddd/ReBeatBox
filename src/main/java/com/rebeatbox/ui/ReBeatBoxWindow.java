@@ -2,12 +2,15 @@ package com.rebeatbox.ui;
 
 import com.rebeatbox.engine.PlaybackController;
 import com.rebeatbox.engine.RealtimeReceiver;
+import com.rebeatbox.visual.PianoRollPanel;
 
 import javax.sound.midi.InvalidMidiDataException;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -15,7 +18,7 @@ import java.util.function.Consumer;
 
 public class ReBeatBoxWindow extends JFrame {
     private ControlBar controlBar;
-    private PlaceholderPanel placeholderPanel;
+    private PianoRollPanel pianoRollPanel;
     private SidebarPanel sidebarPanel;
     private PlaybackController controller;
     private RealtimeReceiver receiver;
@@ -30,21 +33,30 @@ public class ReBeatBoxWindow extends JFrame {
         setLayout(new BorderLayout());
 
         controlBar = new ControlBar();
-        placeholderPanel = new PlaceholderPanel();
+        pianoRollPanel = new PianoRollPanel();
         sidebarPanel = new SidebarPanel();
 
         add(controlBar, BorderLayout.NORTH);
-        add(placeholderPanel, BorderLayout.CENTER);
+        add(pianoRollPanel, BorderLayout.CENTER);
         add(sidebarPanel, BorderLayout.EAST);
 
         // Drag and drop support
         setupDragAndDrop();
+
+        // Cleanup on window close
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (pianoRollPanel != null) pianoRollPanel.dispose();
+            }
+        });
     }
 
     public void wireEngine(PlaybackController controller, RealtimeReceiver receiver) {
         this.controller = controller;
         this.receiver = receiver;
         controlBar.wireEngine(controller);
+        pianoRollPanel.setController(controller);
 
         // File open callback
         controlBar.setOnFileOpen(chooser -> {
@@ -87,6 +99,7 @@ public class ReBeatBoxWindow extends JFrame {
     private void loadAndPlay(File file) {
         try {
             controller.load(file);
+            pianoRollPanel.onFileLoaded();  // triggers pre-scan + timer
             controller.play();
             controlBar.onFileLoaded();
             setTitle("ReBeatBox - " + file.getName());
