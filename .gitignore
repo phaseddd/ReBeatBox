@@ -5,6 +5,9 @@
 *.iws
 *.ipr
 
+# AI Assistant
+.claude/
+
 # Obsidian
 .obsidian/
 
