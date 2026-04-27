@@ -4,7 +4,10 @@ import com.rebeatbox.engine.PlaybackController;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -47,6 +50,15 @@ public class PianoRollPanel extends JPanel {
     /** Gap between adjacent note columns in pixels. */
     static final int COLUMN_GAP = 1;
 
+    /** GaussianBlur kernel size (odd number). */
+    private static final int BLUR_KERNEL_SIZE = 5;
+
+    /** GaussianBlur sigma value. */
+    private static final float BLUR_SIGMA = 2.0f;
+
+    /** Padding around each note bar BufferedImage to accommodate glow spread. */
+    private static final int BLUR_PAD = 6;
+
     // White key MIDI note offsets within an octave
     private static final int[] WHITE_KEY_OFFSETS = {0, 2, 4, 5, 7, 9, 11};
     // Black key MIDI note offsets within an octave
@@ -68,6 +80,9 @@ public class PianoRollPanel extends JPanel {
 
     /** Current playback position in microseconds, updated each timer tick (Task 3). */
     long currentPositionMicros = 0;
+
+    /** Phase accumulator for trigger line pulse animation (D-12). */
+    float pulsePhase = 0.0f;
 
     // --- Constructor ---
 
@@ -157,14 +172,213 @@ public class PianoRollPanel extends JPanel {
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, w, h);
 
-        // Layer 3: Mini keyboard (left side reference)
-        drawMiniKeyboard(g2d);
+        // Layer 2: Note bars with GaussianBlur glow (D-07, D-08)
+        drawNoteBars(g2d);
 
-        // Note: Layer 2 (note bars) and trigger line added in Task 2
+        // Layer 3: Foreground — mini keyboard, grid lines, trigger line
+        drawMiniKeyboard(g2d);
+        drawGridLines(g2d);
+        drawTriggerLine(g2d);
+
         // Note: Animation loop added in Task 3
     }
 
-    // --- Mini keyboard ---
+    // --- Layer 2: Note bars ---
+
+    /**
+     * Renders all visible notes with per-note GaussianBlur glow (D-07, D-08).
+     *
+     * <p>Viewport culling (D-11): only notes within {@code [currentPos - PAST_MICROS,
+     * currentPos + PREVIEW_MICROS]} are rendered. Uses binary search to find the
+     * first visible note index.
+     *
+     * <p>Handles empty renderNotes gracefully (renders nothing).
+     */
+    private void drawNoteBars(Graphics2D g2d) {
+        if (renderNotes.isEmpty()) return;
+
+        long pos = currentPositionMicros;
+        long windowStart = pos - PAST_MICROS;
+        long windowEnd = pos + PREVIEW_MICROS;
+
+        int tly = triggerLineY();
+
+        // Binary search for first visible note (D-10, D-11)
+        int firstIdx = binarySearchFirstVisible(windowStart);
+        if (firstIdx < 0) return;
+
+        for (int i = firstIdx; i < renderNotes.size(); i++) {
+            RenderNote note = renderNotes.get(i);
+            if (note.startMicros() > windowEnd) break;
+            // Skip notes whose endMicros is entirely before the window
+            if (note.endMicros() < windowStart) continue;
+
+            drawSingleNote(g2d, note, pos, tly);
+        }
+    }
+
+    /**
+     * Finds the index of the first RenderNote with {@code startMicros >= windowStart}
+     * using {@link Collections#binarySearch} with a sentinel note.
+     *
+     * @param windowStart lower bound of the visible time window
+     * @return index of the first visible note, or -1 if no notes are in range
+     */
+    private int binarySearchFirstVisible(long windowStart) {
+        // Create a sentinel RenderNote at windowStart for binary search
+        RenderNote sentinel = new RenderNote(60, windowStart, windowStart + 1, 64, 0);
+        int idx = Collections.binarySearch(renderNotes, sentinel,
+            Comparator.comparingLong(RenderNote::startMicros));
+
+        if (idx < 0) {
+            idx = -(idx + 1); // Convert to insertion point
+        } else {
+            // Exact match found — walk backward to the first occurrence
+            while (idx > 0 && renderNotes.get(idx - 1).startMicros() == windowStart) {
+                idx--;
+            }
+        }
+
+        if (idx >= renderNotes.size()) return -1;
+        return idx;
+    }
+
+    /**
+     * Renders a single note bar with GaussianBlur glow onto the canvas.
+     *
+     * <p>Per D-07 and D-08: each note gets its own BufferedImage, ConvolveOp GaussianBlur,
+     * then alpha-composited onto the main Graphics2D. Notes below the trigger line
+     * render at 40% opacity (D-06).
+     *
+     * <p>Per D-04: bar width is one column per semitone, chords naturally render as
+     * adjacent bars at the same Y position.
+     */
+    private void drawSingleNote(Graphics2D g2d, RenderNote note, long currentPos, int tly) {
+        // Compute bar geometry (D-04)
+        double barX = pitchToX(note.pitch());
+        double nextPitchX = pitchToX(note.pitch() + 1);
+        int barWidth = (int) (nextPitchX - barX) - COLUMN_GAP;
+        if (barWidth <= 0) return;
+
+        int barY = timeToY(note.startMicros(), currentPos);
+        int barBottomY = timeToY(note.endMicros(), currentPos);
+        int barHeight = Math.max(barBottomY - barY, MIN_BAR_HEIGHT);
+
+        // Clamp to panel bounds
+        if (barY > getHeight() || barBottomY < 0) return;
+
+        // Determine if note crosses the trigger line (D-06)
+        Color baseColor = NoteColorMapper.forPitch(note.pitch());
+        boolean spansTrigger = barY < tly && barBottomY > tly;
+
+        if (spansTrigger) {
+            // Split into two segments: above and below trigger line
+            int aboveHeight = tly - barY;
+            if (aboveHeight >= MIN_BAR_HEIGHT) {
+                drawGlowingBar(g2d, (int) barX, barY, barWidth, aboveHeight, baseColor, 1.0f);
+            }
+            int belowY = tly;
+            int belowHeight = barBottomY - tly;
+            if (belowHeight >= MIN_BAR_HEIGHT) {
+                drawGlowingBar(g2d, (int) barX, belowY, barWidth, belowHeight, baseColor, 0.4f);
+            }
+        } else {
+            float alpha = (barY >= tly) ? 0.4f : 1.0f; // below trigger = dimmed (D-06)
+            drawGlowingBar(g2d, (int) barX, barY, barWidth, barHeight, baseColor, alpha);
+        }
+    }
+
+    /**
+     * Creates a BufferedImage for a single note bar, applies separable GaussianBlur
+     * via two-pass ConvolveOp, then alpha-composites the result onto the target Graphics2D.
+     *
+     * <p>The per-note BufferedImage is padded by {@link #BLUR_PAD} pixels on each side
+     * to accommodate glow spread from the convolution kernel.
+     *
+     * @param g2d    target graphics context
+     * @param x      bar left edge
+     * @param y      bar top edge
+     * @param width  bar width in pixels
+     * @param height bar height in pixels
+     * @param color  base fill color for the note
+     * @param alpha  compositing alpha (1.0 = full brightness, 0.4 = dimmed per D-06)
+     */
+    private void drawGlowingBar(Graphics2D g2d, int x, int y, int width, int height,
+                                Color color, float alpha) {
+        width = Math.max(1, width);
+        height = Math.max(1, height);
+
+        int imgW = width + BLUR_PAD * 2;
+        int imgH = height + BLUR_PAD * 2;
+
+        BufferedImage barImg = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D barG = barImg.createGraphics();
+
+        barG.setColor(color);
+        barG.fillRect(BLUR_PAD, BLUR_PAD, width, height);
+        barG.dispose();
+
+        // Apply separable GaussianBlur (horizontal + vertical pass)
+        float[] kernel = buildGaussianKernel(BLUR_KERNEL_SIZE, BLUR_SIGMA);
+        BufferedImage blurred = applyConvolveBlur(barImg, kernel);
+
+        // Alpha-composite the blurred note onto the main canvas
+        Composite origComposite = g2d.getComposite();
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.drawImage(blurred, x - BLUR_PAD, y - BLUR_PAD, null);
+        g2d.setComposite(origComposite);
+    }
+
+    /**
+     * Builds a normalized 1D Gaussian kernel.
+     *
+     * <p>Formula: G(x) = (1 / (sigma * sqrt(2*pi))) * e^(-x^2 / (2*sigma^2)).
+     *
+     * @param size  kernel size (odd number)
+     * @param sigma standard deviation
+     * @return normalized 1D kernel array
+     */
+    private static float[] buildGaussianKernel(int size, float sigma) {
+        float[] kernel = new float[size];
+        int half = size / 2;
+        float sum = 0f;
+        for (int i = 0; i < size; i++) {
+            int x = i - half;
+            kernel[i] = (float) (Math.exp(-(x * x) / (2.0 * sigma * sigma))
+                    / (sigma * Math.sqrt(2.0 * Math.PI)));
+            sum += kernel[i];
+        }
+        // Normalize
+        for (int i = 0; i < size; i++) {
+            kernel[i] /= sum;
+        }
+        return kernel;
+    }
+
+    /**
+     * Applies a Gaussian blur via two-pass separable ConvolveOp
+     * (horizontal kernel then vertical kernel).
+     *
+     * @param source source image
+     * @param kernel 1D normalized Gaussian kernel
+     * @return blurred image
+     */
+    private static BufferedImage applyConvolveBlur(BufferedImage source, float[] kernel) {
+        // Horizontal pass
+        float[] hData = kernel.clone();
+        java.awt.image.Kernel hk = new java.awt.image.Kernel(kernel.length, 1, hData);
+        ConvolveOp hOp = new ConvolveOp(hk, ConvolveOp.EDGE_NO_OP, null);
+        BufferedImage hBlurred = hOp.filter(source, null);
+
+        // Vertical pass
+        float[] vData = new float[kernel.length];
+        System.arraycopy(kernel, 0, vData, 0, kernel.length);
+        java.awt.image.Kernel vk = new java.awt.image.Kernel(1, kernel.length, vData);
+        ConvolveOp vOp = new ConvolveOp(vk, ConvolveOp.EDGE_NO_OP, null);
+        return vOp.filter(hBlurred, null);
+    }
+
+    // --- Layer 3: Mini keyboard ---
 
     /**
      * Draws the mini keyboard silhouette on the left side of the panel (D-02).
@@ -206,7 +420,6 @@ public class PianoRollPanel extends JPanel {
             if (!isBlackKey(pitch)) continue;
 
             int keyIndex = pitch - startPitch;
-            // Black key centered on the pitch boundary
             int keyCenterY = (int) ((keyIndex + 0.5) * keyHeight);
             int keyY = keyCenterY - blackKeyHeight / 2;
 
@@ -255,5 +468,88 @@ public class PianoRollPanel extends JPanel {
             if (bk == offset) return true;
         }
         return false;
+    }
+
+    // --- Layer 3: Grid lines ---
+
+    /**
+     * Draws subtle horizontal grid lines at one-beat intervals for orientation.
+     * Near-invisible white lines (alpha=15) that do not violate D-07's pure black
+     * aesthetic.
+     */
+    private void drawGridLines(Graphics2D g2d) {
+        if (controller == null) return;
+
+        // Get BPM for beat interval calculation
+        int bpm = 120; // default
+        try {
+            bpm = (int) Math.round(controller.getSequencer().getTempoInBPM());
+        } catch (Exception ignored) {
+            // Fall back to default BPM
+        }
+        if (bpm <= 0) bpm = 120;
+
+        long beatIntervalMicros = 60_000_000L / bpm; // microseconds per beat
+        if (beatIntervalMicros <= 0) return;
+
+        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        g2d.setColor(new Color(255, 255, 255, 15)); // near-invisible white
+
+        long pos = currentPositionMicros;
+        long windowStart = pos - PAST_MICROS;
+        long windowEnd = pos + PREVIEW_MICROS;
+
+        // Align to beat boundaries
+        long firstBeat = ((windowStart / beatIntervalMicros) - 1) * beatIntervalMicros;
+        if (firstBeat < 0) firstBeat = 0;
+
+        int waterfallLeft = KEYBOARD_WIDTH;
+        int waterfallRight = getWidth();
+
+        for (long beatTime = firstBeat; beatTime <= windowEnd; beatTime += beatIntervalMicros) {
+            int y = timeToY(beatTime, pos);
+            if (y >= 0 && y < getHeight()) {
+                g2d.drawLine(waterfallLeft, y, waterfallRight, y);
+            }
+        }
+    }
+
+    // --- Layer 3: Trigger line ---
+
+    /**
+     * Draws the pulsing neon trigger line (D-12).
+     *
+     * <p>Two-pass rendering: a wide translucent cyan halo (8px stroke), then a
+     * 2px bright cyan/white core line. The core line opacity pulses via a sine-wave
+     * between 0.80 and 1.00 for a heartbeat feel.
+     *
+     * <p>For Task 2, uses a constant pulseAlpha of 1.0f. Pulse animation is wired
+     * in Task 3 when the Timer updates pulsePhase.
+     */
+    private void drawTriggerLine(Graphics2D g2d) {
+        int ty = triggerLineY();
+        int waterfallLeft = KEYBOARD_WIDTH;
+        int waterfallRight = getWidth();
+
+        // Compute pulse alpha (constant for now; animated in Task 3)
+        float pulseAlpha = 0.80f + 0.20f * (float) ((Math.sin(pulsePhase) + 1.0) / 2.0);
+
+        // Enable antialiasing for smooth line rendering
+        Object origAntialias = g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Outer glow halo
+        g2d.setStroke(new BasicStroke(8.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g2d.setColor(new Color(0, 255, 255, (int) (60 * pulseAlpha))); // cyan, low alpha
+        g2d.drawLine(waterfallLeft, ty, waterfallRight, ty);
+
+        // Core line
+        g2d.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        int coreAlpha = (int) (255 * pulseAlpha);
+        g2d.setColor(new Color(200, 255, 255, coreAlpha));
+        g2d.drawLine(waterfallLeft, ty, waterfallRight, ty);
+
+        // Restore original rendering hint
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, origAntialias);
     }
 }
