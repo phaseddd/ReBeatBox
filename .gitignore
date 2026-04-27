@@ -1,0 +1,36 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Obsidian
+.obsidian/
+
+# Java
+*.class
+*.jar
+*.war
+!gradle/wrapper/gradle-wrapper.jar
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# GSD Planning (if commit_docs=false — currently committed)
+# .planning/
+
+# Secrets
+*.env
+*.env.local
+secrets.properties

@@ -80,33 +80,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAY-01 | — | Pending |
-| PLAY-02 | — | Pending |
-| PLAY-03 | — | Pending |
-| PLAY-04 | — | Pending |
-| PLAY-05 | — | Pending |
-| VIS-01 | — | Pending |
-| VIS-02 | — | Pending |
-| VIS-03 | — | Pending |
-| LIVE-01 | — | Pending |
-| LIVE-02 | — | Pending |
-| LIVE-03 | — | Pending |
-| LIVE-04 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| GLITCH-01 | — | Pending |
-| GLITCH-02 | — | Pending |
-| GLITCH-03 | — | Pending |
-| GLITCH-04 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| CONT-03 | — | Pending |
+| PLAY-01 | Phase 1 | Pending |
+| PLAY-02 | Phase 1 | Pending |
+| PLAY-03 | Phase 1 | Pending |
+| PLAY-04 | Phase 1 | Pending |
+| PLAY-05 | Phase 1 | Pending |
+| CONT-02 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Pending |
+| VIS-01 | Phase 2 | Pending |
+| VIS-02 | Phase 2 | Pending |
+| VIS-03 | Phase 2 | Pending |
+| LIVE-01 | Phase 3 | Pending |
+| LIVE-02 | Phase 3 | Pending |
+| LIVE-03 | Phase 3 | Pending |
+| LIVE-04 | Phase 3 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| GLITCH-01 | Phase 4 | Pending |
+| GLITCH-02 | Phase 4 | Pending |
+| GLITCH-03 | Phase 4 | Pending |
+| GLITCH-04 | Phase 4 | Pending |
+| CONT-01 | Phase 5 | Pending |
+| CONT-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22 ⚠️
+- Mapped to phases: 22
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-27*
