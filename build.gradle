@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.rebeatbox'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+application {
+    mainClass = 'com.rebeatbox.App'
+}
+
+repositories {
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/spring' }
+    mavenCentral()
+}
+
+dependencies {
+    // Radiance 8.5.0 — modern Swing UI framework
+    implementation 'org.pushing-pixels:radiance-common:8.5.0'
+    implementation 'org.pushing-pixels:radiance-animation:8.5.0'
+    implementation 'org.pushing-pixels:radiance-theming:8.5.0'
+    implementation 'org.pushing-pixels:radiance-component:8.5.0'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.rebeatbox.App'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
