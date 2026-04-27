@@ -9,17 +9,17 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Playback (PLAY)
 
-- [ ] **PLAY-01**: User can load standard MIDI files (.mid) via file dialog or drag-and-drop
-- [ ] **PLAY-02**: User can play, pause, stop, and restart playback
-- [ ] **PLAY-03**: User can adjust playback tempo (BPM) via slider
-- [ ] **PLAY-04**: User can adjust master volume via slider
-- [ ] **PLAY-05**: User can seek to any position via progress bar during playback
+- [x] **PLAY-01**: User can load standard MIDI files (.mid) via file dialog or drag-and-drop
+- [x] **PLAY-02**: User can play, pause, stop, and restart playback
+- [x] **PLAY-03**: User can adjust playback tempo (BPM) via slider
+- [x] **PLAY-04**: User can adjust master volume via slider
+- [x] **PLAY-05**: User can seek to any position via progress bar during playback
 
 ### Visualization (VIS)
 
-- [ ] **VIS-01**: User sees a piano roll view — horizontal timeline, vertical pitch grid
-- [ ] **VIS-02**: User sees falling notes animation (Synthesia-style) synced to playback
-- [ ] **VIS-03**: User sees a clear playback position indicator (playhead / highlight)
+- [x] **VIS-01**: User sees a piano roll view — horizontal timeline, vertical pitch grid
+- [x] **VIS-02**: User sees falling notes animation (Synthesia-style) synced to playback
+- [x] **VIS-03**: User sees a clear playback position indicator (playhead / highlight)
 
 ### Live Performance (LIVE)
 
@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Visual Theme (UI)
 
-- [ ] **UI-01**: Application uses a dark theme (Radiance NightShade skin) as visual foundation
+- [x] **UI-01**: Application uses a dark theme (Radiance NightShade skin) as visual foundation
 - [ ] **UI-02**: Neon color palette applied across all UI elements (note tracks, buttons, indicators)
 - [ ] **UI-03**: All buttons and interactive controls have hover/press animation feedback via radiance-animation
 
@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Content (CONT)
 
 - [ ] **CONT-01**: Application ships with 3-5 built-in demo MIDI songs (public domain / CC-licensed)
-- [ ] **CONT-02**: User can drag and drop .mid files from file explorer into the application window
+- [x] **CONT-02**: User can drag and drop .mid files from file explorer into the application window
 - [ ] **CONT-03**: Application maintains a recent files list (last 10 opened files)
 
 ## v2 Requirements

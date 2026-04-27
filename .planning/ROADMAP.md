@@ -66,8 +66,8 @@ Phase 5 (parallel with 2-4, gates on 4 for ship)
 **Plans:** 2 plans in 2 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — RenderNote data model, MIDI pre-scan, pitch-to-neon-color mapping
-- [ ] 02-02-PLAN.md — PianoRollPanel: three-layer compositing, GaussianBlur glow, 60fps animation, ReBeatBoxWindow integration
+- [x] 02-01-PLAN.md — RenderNote data model, MIDI pre-scan, pitch-to-neon-color mapping
+- [x] 02-02-PLAN.md — PianoRollPanel: three-layer compositing, GaussianBlur glow, 60fps animation, ReBeatBoxWindow integration
 
 **Wave Structure:**
 
@@ -188,4 +188,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 2 planned*
+*Last updated: 2026-04-28 — Phase 2 executed*
