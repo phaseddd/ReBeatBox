@@ -12,12 +12,15 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 | Field | Value |
 |-------|-------|
 | Phase | 2 — Visualization |
-| Status | ✓ Complete |
+| Status | ✓ Shipped |
 | Started | 2026-04-28 |
 | Completed | 2026-04-28 |
+| Shipped | 2026-04-28 |
+| UAT | 9/10 passed, 1 cosmetic deferred to Phase 4 |
 | Requirements | VIS-01, VIS-02, VIS-03 |
 | Plans | 2/2 complete |
 | Waves | 2/2 complete |
+| Tests | 39 passed |
 | Tests | 39 passed |
 
 ## Phase Progress
@@ -36,4 +39,4 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 
 ---
 *State initialized: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 2 complete*
+*Last updated: 2026-04-28 — Phase 2 shipped*
