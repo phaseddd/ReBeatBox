@@ -1,6 +1,7 @@
 package com.rebeatbox.visual;
 
 import com.rebeatbox.engine.PlaybackController;
+import com.rebeatbox.ui.ThemeManager;
 
 import javax.sound.midi.Sequence;
 import javax.swing.*;
@@ -107,7 +108,7 @@ public class PianoRollPanel extends JPanel {
      * The controller is wired later via {@link #setController(PlaybackController)}.
      */
     public PianoRollPanel() {
-        setBackground(Color.BLACK);  // D-07
+        setBackground(ThemeManager.BG_ROOT);  // D-03: deepest background tier #0A0A14
         setDoubleBuffered(true);
     }
 
@@ -293,7 +294,7 @@ public class PianoRollPanel extends JPanel {
         if (w <= 0 || h <= 0) return;
 
         // Layer 1: Pure black background (D-07, D-08)
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(ThemeManager.BG_ROOT);
         g2d.fillRect(0, 0, w, h);
 
         // Layer 2: Note bars with GaussianBlur glow (D-07, D-08)
