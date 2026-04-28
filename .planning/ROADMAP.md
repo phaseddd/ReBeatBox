@@ -143,9 +143,9 @@ Plans:
 **Plans:** 6 plans in 2 waves
 
 Plans:
-- [ ] 04-01-PLAN.md — Foundation Layer: ThemeManager + SvgIconLoader + Batik dependencies + 12 SVG icon files
-- [ ] 04-02-PLAN.md — New Visual Effects: ParticleSystem + GlitchTransition
-- [ ] 04-03-PLAN.md — PianoRollPanel glow amplification (kernel 5->7, sigma 2.0->3.5) + velocity-to-alpha mapping
+- [x] 04-01-PLAN.md — Foundation Layer: ThemeManager + SvgIconLoader + Batik dependencies + 12 SVG icon files
+- [x] 04-02-PLAN.md — New Visual Effects: ParticleSystem + GlitchTransition
+- [x] 04-03-PLAN.md — PianoRollPanel glow amplification (kernel 5->7, sigma 2.0->3.5) + velocity-to-alpha mapping
 - [ ] 04-04-PLAN.md — Transport + Sidebar: ThemeManager colors, SVG icons, Timeline animation, GlitchTransition, PianoRollPanel BG
 - [ ] 04-05-PLAN.md — Live + Background Components: ThemeManager colors, PadButton animation, KeyboardHintPanel D-30/D-31, PlaceholderPanel
 - [ ] 04-06-PLAN.md — Integration Wiring: ReBeatBoxWindow GlassPane + ParticleSystem subscriptions + file load GlitchTransition + App.java init
