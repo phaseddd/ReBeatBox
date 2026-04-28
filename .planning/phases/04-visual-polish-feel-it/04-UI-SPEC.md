@@ -31,25 +31,30 @@ created: 2026-04-28
 
 ## Spacing Scale
 
-Pixel constants used in layout managers and insets. All values are integer pixels (multiples of 4 unless constrained by existing layout).
+Pixel constants used in layout managers and insets. All values are multiples of 4.
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | FlowLayout vgap (ControlBar), horizontal struts between compact controls |
-| sm | 6px | FlowLayout hgap (ControlBar), inline element spacing |
-| md | 8px | GridLayout gaps (DrumPadGrid 4x4), border thickness |
-| lg | 10px | Horizontal struts between control groups (BPM, Volume, Time sections) |
-| xl | 12px | EmptyBorder insets (DrumPadGrid 0/12/0/12) |
-| 2xl | 38px | Transport button size (width and height, icon-safe square) |
-| 3xl | 48px | PadButton size (width and height, text+icon safe) |
+| sm | 8px | GridLayout gaps (DrumPadGrid 4x4), border thickness, inline element spacing |
+| md | 12px | EmptyBorder insets (DrumPadGrid 0/12/0/12), default element spacing |
+| lg | 24px | Section padding (reserved for future use) |
+| xl | 36px | Button sizes where 48px is too large (reserved for future use) |
+| 2xl | 48px | PadButton size (width and height, text+icon safe) |
+| 3xl | 64px | Reserved for major section breaks |
 
-**Exceptions:**
-- SidebarPanel expanded width: 240px (fixed by Phase 2 D-03 layout decision, not a spacing token)
-- SidebarPanel collapsed width: 0px (fully hidden, D-16 glitch transition replaces instant toggle)
-- GlassPane covers full JFrame dimensions (derived from window size, not a token)
-- Progress bar preferred width: 240px (existing Phase 1 dimension, retained)
+**Component-specific dimensions (not spacing tokens):**
+These pixel values are constrained by existing Phase 1-3 layout code and are NOT part of the spacing scale. They are listed here for reference only.
 
-**Source:** Pre-populated from existing codebase patterns (ControlBar FlowLayout(LEFT, 6, 4), DrumPadGrid GridLayout(4, 4, 8, 8), struts of 10px/4px, EmptyBorder(0, 12, 0, 12)). No changes required for Phase 4 -- these are the existing spacing constants that new components must match.
+| Dimension | Value | Source |
+|-----------|-------|--------|
+| FlowLayout hgap (ControlBar) | 6px | Existing `new FlowLayout(FlowLayout.LEFT, 6, 4)` in ControlBar constructor |
+| Control group strut | 10px | Existing `Box.createHorizontalStrut(10)` between BPM/Volume/Time sections |
+| Transport button size | 38px | Existing `createTransportButton()` preferred size in ControlBar |
+| SidebarPanel expanded width | 240px | Phase 2 D-03 layout decision |
+| SidebarPanel collapsed width | 0px | Fully hidden, D-16 glitch transition replaces instant toggle |
+| GlassPane dimensions | window-size | Derived from JFrame dimensions |
+| Progress bar preferred width | 240px | Existing Phase 1 dimension, retained |
 
 ---
 
@@ -168,6 +173,28 @@ Preserves the above/below brightness distinction from Phase 2 D-06 while making 
 ---
 
 ## Copywriting Contract
+
+### Visual Hierarchy
+
+**Focal point:** PianoRollPanel canvas (center of window) — the falling neon note bars and pulsing trigger line are the primary visual anchor. Secondary anchors: ControlBar transport buttons (top), which draw attention via neon hover states. Tertiary: SidebarPanel drum pads (right), KeyboardHintPanel (bottom) — both visually recessive when idle.
+
+### Accessibility
+
+Icon-only buttons provide accessible names via the `AccessibleName` JComponent property:
+
+| Button | Accessible Name | Visible Feedback |
+|--------|----------------|------------------|
+| Transport: Play | "Play" | Tooltip "Play" + SVG icon |
+| Transport: Pause | "Pause" | Tooltip "Pause" + SVG icon |
+| Transport: Stop | "Stop" | Tooltip "Stop" + SVG icon |
+| Transport: Restart | "Restart" | Tooltip "Restart" + SVG icon |
+| Sidebar toggle (expand) | "Expand sidebar" | Tooltip "Expand sidebar" + SVG icon |
+| Sidebar toggle (collapse) | "Collapse sidebar" | Tooltip "Collapse sidebar" + SVG icon |
+| Open file | "Open MIDI file" | Tooltip "Open MIDI File" + SVG icon |
+
+All transport and toggle buttons use `setAccessibleName()` at construction time. This satisfies Swing accessibility requirements for icon-only controls.
+
+### All Copy Labels
 
 All copy is display text for a desktop music application. No marketing copy, no onboarding flows -- just labels, tooltips, and status text.
 
