@@ -59,14 +59,15 @@ public class PianoRollPanel extends JPanel {
     /** Gap between adjacent note columns in pixels. */
     static final int COLUMN_GAP = 1;
 
-    /** GaussianBlur kernel size (odd number). */
-    private static final int BLUR_KERNEL_SIZE = 5;
+    /** GaussianBlur kernel size — increased from 5 to 7 per D-21 for stronger glow. */
+    private static final int BLUR_KERNEL_SIZE = 7;
 
-    /** GaussianBlur sigma value. */
-    private static final float BLUR_SIGMA = 2.0f;
+    /** GaussianBlur sigma — increased from 2.0 to 3.5 per D-21 for wider blur spread. */
+    private static final float BLUR_SIGMA = 3.5f;
 
-    /** Padding around each note bar BufferedImage to accommodate glow spread. */
-    private static final int BLUR_PAD = 6;
+    /** Padding around each note bar BufferedImage — increased from 6 to 8
+     *  to accommodate the wider 7x7 kernel spread (per RESEARCH.md recommendation). */
+    private static final int BLUR_PAD = 8;
 
     /** Animation timer interval in milliseconds (~62.5fps, close to 60fps per D-13). */
     private static final int TIMER_INTERVAL_MS = 16;
@@ -393,19 +394,23 @@ public class PianoRollPanel extends JPanel {
         Color baseColor = NoteColorMapper.forPitch(note.pitch());
         boolean spansTrigger = barY < tly && barBottomY > tly;
 
+        int velocity = note.velocity(); // MIDI velocity 0-127 from the pre-scanned note data
+
         if (spansTrigger) {
             // Split into two segments: above and below trigger line
             int aboveHeight = tly - barY;
             if (aboveHeight >= MIN_BAR_HEIGHT) {
-                drawGlowingBar(g2d, (int) barX, barY, barWidth, aboveHeight, baseColor, 1.0f);
+                float aboveAlpha = velocityToAlpha(velocity, true);
+                drawGlowingBar(g2d, (int) barX, barY, barWidth, aboveHeight, baseColor, aboveAlpha);
             }
             int belowY = tly;
             int belowHeight = barBottomY - tly;
             if (belowHeight >= MIN_BAR_HEIGHT) {
-                drawGlowingBar(g2d, (int) barX, belowY, barWidth, belowHeight, baseColor, 0.4f);
+                float belowAlpha = velocityToAlpha(velocity, false);
+                drawGlowingBar(g2d, (int) barX, belowY, barWidth, belowHeight, baseColor, belowAlpha);
             }
         } else {
-            float alpha = (barY >= tly) ? 0.4f : 1.0f; // below trigger = dimmed (D-06)
+            float alpha = velocityToAlpha(velocity, barY < tly);
             drawGlowingBar(g2d, (int) barX, barY, barWidth, barHeight, baseColor, alpha);
         }
     }
@@ -449,6 +454,27 @@ public class PianoRollPanel extends JPanel {
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
         g2d.drawImage(blurred, x - BLUR_PAD, y - BLUR_PAD, null);
         g2d.setComposite(origComposite);
+    }
+
+    /**
+     * Maps MIDI velocity (0-127) to an alpha value for note bar opacity.
+     * Per D-27, D-28, D-29. Preserves the above/below trigger line brightness
+     * distinction from Phase 2 D-06.
+     *
+     * <p>Above trigger line: alpha 0.30 (vel=0) -&gt; 1.00 (vel=127)
+     * <p>Below trigger line: alpha 0.15 (vel=0) -&gt; 0.40 (vel=127)
+     *
+     * @param velocity     MIDI velocity 0-127
+     * @param aboveTrigger true if the note bar is above the trigger line
+     * @return alpha value for compositing this note bar
+     */
+    private static float velocityToAlpha(int velocity, boolean aboveTrigger) {
+        float v = velocity / 127.0f;
+        if (aboveTrigger) {
+            return 0.30f + v * 0.70f;
+        } else {
+            return 0.15f + v * 0.25f;
+        }
     }
 
     /**
