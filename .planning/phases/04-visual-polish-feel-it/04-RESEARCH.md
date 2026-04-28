@@ -662,7 +662,7 @@ private float velocityToAlpha(int velocity, boolean aboveTrigger) {
 | A5 | PianoRollPanel's existing separable ConvolveOp handles kernel-size 7 without edge artifacts at BLUR_PAD=8 | GaussianBlur Optimization | LOW: ConvolveOp handles arbitrary kernel sizes; edge conditions managed by EDGE_NO_OP |
 | A6 | The RGB glitch pixel manipulation on a captured BufferedImage will complete within one frame (~16ms) for the sidebar region (~240x720 pixels) | Glitch Effect | LOW: 240x720 = 172,800 pixels; single-pass array iteration is well under 16ms |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Batik vs JSVG — is D-24 truly locked?**
    - What we know: D-24 says "Apache Batik library." JSVG is 500KB vs Batik's ~10MB transitive deps, used by JetBrains, and sufficient for ~20 simple cyber icons.
