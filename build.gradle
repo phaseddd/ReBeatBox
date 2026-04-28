@@ -13,10 +13,7 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-}
-
-application {
-    mainClass = 'com.rebeatbox.App'
+    options.compilerArgs += ['--add-exports', 'java.desktop/com.sun.media.sound=ALL-UNNAMED']
 }
 
 repositories {
@@ -38,6 +35,12 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    jvmArgs += ['--add-exports', 'java.desktop/com.sun.media.sound=ALL-UNNAMED']
+}
+
+application {
+    mainClass = 'com.rebeatbox.App'
+    applicationDefaultJvmArgs = ['--add-exports', 'java.desktop/com.sun.media.sound=ALL-UNNAMED']
 }
 
 // Auto-download SoundFont if not present (151MB, too large for Git)
