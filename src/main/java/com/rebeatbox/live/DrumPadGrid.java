@@ -1,6 +1,7 @@
 package com.rebeatbox.live;
 
 import com.rebeatbox.engine.RealtimeReceiver;
+import com.rebeatbox.ui.ThemeManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -29,7 +30,7 @@ public class DrumPadGrid extends JPanel {
         this.receiver = receiver;
 
         setLayout(new GridLayout(4, 4, 8, 8));
-        setBackground(new Color(0x16213E));
+        setBackground(ThemeManager.BG_SURFACE);
         setBorder(new EmptyBorder(0, 12, 0, 12));
 
         for (int i = 0; i < 16; i++) {
