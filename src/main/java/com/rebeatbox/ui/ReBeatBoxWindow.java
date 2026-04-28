@@ -1,14 +1,19 @@
 package com.rebeatbox.ui;
 
+import com.rebeatbox.engine.NoteEventBus;
 import com.rebeatbox.engine.PlaybackController;
 import com.rebeatbox.engine.RealtimeReceiver;
+import com.rebeatbox.live.DrumPadGrid;
+import com.rebeatbox.live.KeyboardMapper;
 import com.rebeatbox.visual.PianoRollPanel;
 
 import javax.sound.midi.InvalidMidiDataException;
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -22,6 +27,10 @@ public class ReBeatBoxWindow extends JFrame {
     private SidebarPanel sidebarPanel;
     private PlaybackController controller;
     private RealtimeReceiver receiver;
+    private NoteEventBus eventBus;
+    private KeyboardMapper keyboardMapper;
+    private KeyboardHintPanel keyboardHintPanel;
+    private DrumPadGrid drumPadGrid;
 
     public ReBeatBoxWindow() {
         setTitle("ReBeatBox");
@@ -40,10 +49,12 @@ public class ReBeatBoxWindow extends JFrame {
         add(pianoRollPanel, BorderLayout.CENTER);
         add(sidebarPanel, BorderLayout.EAST);
 
-        // Drag and drop support
+        // Phase 3: Keyboard hint panel in SOUTH region (D-07)
+        keyboardHintPanel = new KeyboardHintPanel();
+        add(keyboardHintPanel, BorderLayout.SOUTH);
+
         setupDragAndDrop();
 
-        // Cleanup on window close
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -52,18 +63,101 @@ public class ReBeatBoxWindow extends JFrame {
         });
     }
 
-    public void wireEngine(PlaybackController controller, RealtimeReceiver receiver) {
+    public void wireEngine(PlaybackController controller, RealtimeReceiver receiver, NoteEventBus eventBus) {
         this.controller = controller;
         this.receiver = receiver;
+        this.eventBus = eventBus;
+        this.keyboardMapper = new KeyboardMapper();
+
         controlBar.wireEngine(controller);
         pianoRollPanel.setController(controller);
 
-        // File open callback
+        // Phase 3: Drum pad grid in sidebar content panel (D-04)
+        drumPadGrid = new DrumPadGrid(receiver);
+        sidebarPanel.getContentPanel().add(drumPadGrid, BorderLayout.CENTER);
+
+        // Phase 3: PianoRollPanel live note flash (D-10)
+        eventBus.subscribeLive(new com.rebeatbox.engine.LiveNoteEventListener() {
+            @Override
+            public void onLiveNoteOn(int note, int velocity) {
+                pianoRollPanel.repaint();
+            }
+            @Override
+            public void onLiveNoteOff(int note) {
+                pianoRollPanel.repaint();
+            }
+        });
+
+        // Phase 3: Global keyboard dispatcher (D-03)
+        registerKeyboardDispatcher();
+
+        // Phase 3: Window focus loss handler (stuck-note prevention)
+        registerFocusLossHandler();
+
         controlBar.setOnFileOpen(chooser -> {
             int result = chooser.showOpenDialog(this);
             if (result == JFileChooser.APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
                 loadAndPlay(file);
+            }
+        });
+    }
+
+    private void registerKeyboardDispatcher() {
+        KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        kfm.addKeyEventDispatcher(e -> {
+            int id = e.getID();
+            if (id != KeyEvent.KEY_PRESSED && id != KeyEvent.KEY_RELEASED) {
+                return false;
+            }
+            if (e.isConsumed()) {
+                return false;
+            }
+
+            Component focusOwner = kfm.getFocusOwner();
+            if (focusOwner instanceof JTextComponent) {
+                return false;
+            }
+
+            int note = KeyboardMapper.keyCodeToNote(e.getKeyCode());
+            if (note < 0) {
+                return false;
+            }
+
+            boolean pressed = (id == KeyEvent.KEY_PRESSED);
+            if (pressed && !keyboardMapper.isActive(note)) {
+                receiver.noteOn(note, 100);
+                eventBus.fireLiveNoteOn(note, 100);
+                keyboardMapper.setActive(note, true);
+                keyboardHintPanel.setKeyHighlighted(e.getKeyCode(), true);
+            } else if (!pressed && keyboardMapper.isActive(note)) {
+                receiver.noteOff(note);
+                eventBus.fireLiveNoteOff(note);
+                keyboardMapper.setActive(note, false);
+                keyboardHintPanel.setKeyHighlighted(e.getKeyCode(), false);
+            }
+
+            return false;
+        });
+    }
+
+    private void registerFocusLossHandler() {
+        addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowLostFocus(WindowEvent e) {
+                if (keyboardMapper == null || receiver == null) return;
+
+                for (int note = 0; note < 128; note++) {
+                    if (keyboardMapper.isActive(note)) {
+                        receiver.noteOff(note);
+                        eventBus.fireLiveNoteOff(note);
+                        keyboardMapper.setActive(note, false);
+                    }
+                }
+
+                if (keyboardHintPanel != null) {
+                    keyboardHintPanel.clearAllHighlights();
+                }
             }
         });
     }
@@ -99,7 +193,7 @@ public class ReBeatBoxWindow extends JFrame {
     private void loadAndPlay(File file) {
         try {
             controller.load(file);
-            pianoRollPanel.onFileLoaded();  // triggers pre-scan + timer
+            pianoRollPanel.onFileLoaded();
             controller.play();
             controlBar.onFileLoaded();
             setTitle("ReBeatBox - " + file.getName());
