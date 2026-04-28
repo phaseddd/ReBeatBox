@@ -9,6 +9,10 @@ public class RealtimeReceiver {
         this.receiver = synthesizer.getReceiver();
     }
 
+    RealtimeReceiver(Receiver receiver) {
+        this.receiver = receiver;
+    }
+
     public void noteOn(int noteNumber, int velocity) {
         try {
             ShortMessage msg = new ShortMessage(ShortMessage.NOTE_ON, 0, noteNumber, velocity);
@@ -24,6 +28,26 @@ public class RealtimeReceiver {
             receiver.send(msg, -1);
         } catch (InvalidMidiDataException e) {
             System.err.println("Invalid MIDI noteOff: note=" + noteNumber);
+        }
+    }
+
+    public void noteOn(int noteNumber, int velocity, int channel) {
+        try {
+            ShortMessage msg = new ShortMessage(ShortMessage.NOTE_ON, channel, noteNumber, velocity);
+            receiver.send(msg, -1);
+        } catch (InvalidMidiDataException e) {
+            System.err.println("Invalid MIDI noteOn: note=" + noteNumber
+                + " velocity=" + velocity + " channel=" + channel);
+        }
+    }
+
+    public void noteOff(int noteNumber, int channel) {
+        try {
+            ShortMessage msg = new ShortMessage(ShortMessage.NOTE_ON, channel, noteNumber, 0);
+            receiver.send(msg, -1);
+        } catch (InvalidMidiDataException e) {
+            System.err.println("Invalid MIDI noteOff: note=" + noteNumber
+                + " channel=" + channel);
         }
     }
 

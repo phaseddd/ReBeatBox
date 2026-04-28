@@ -21,4 +21,26 @@ public class NoteEventBus {
             SwingUtilities.invokeLater(() -> listener.onActiveNotesChanged(activeNotes));
         }
     }
+
+    private final List<LiveNoteEventListener> liveListeners = new CopyOnWriteArrayList<>();
+
+    public void subscribeLive(LiveNoteEventListener listener) {
+        liveListeners.add(listener);
+    }
+
+    public void unsubscribeLive(LiveNoteEventListener listener) {
+        liveListeners.remove(listener);
+    }
+
+    public void fireLiveNoteOn(int note, int velocity) {
+        for (LiveNoteEventListener listener : liveListeners) {
+            SwingUtilities.invokeLater(() -> listener.onLiveNoteOn(note, velocity));
+        }
+    }
+
+    public void fireLiveNoteOff(int note) {
+        for (LiveNoteEventListener listener : liveListeners) {
+            SwingUtilities.invokeLater(() -> listener.onLiveNoteOff(note));
+        }
+    }
 }
