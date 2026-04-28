@@ -29,6 +29,19 @@ dependencies {
     implementation 'org.pushing-pixels:radiance-theming:8.5.0'
     implementation 'org.pushing-pixels:radiance-component:8.5.0'
 
+    // Apache Batik 1.19 — SVG icon rasterization (Phase 4 GLITCH-04, per D-24)
+    implementation 'org.apache.xmlgraphics:batik-transcoder:1.19'
+    implementation 'org.apache.xmlgraphics:batik-awt-util:1.19'
+    implementation 'org.apache.xmlgraphics:batik-bridge:1.19'
+    implementation 'org.apache.xmlgraphics:batik-dom:1.19'
+    implementation 'org.apache.xmlgraphics:batik-ext:1.19'
+    implementation 'org.apache.xmlgraphics:batik-gvt:1.19'
+    implementation 'org.apache.xmlgraphics:batik-svg-dom:1.19'
+    implementation 'org.apache.xmlgraphics:batik-util:1.19'
+    implementation 'org.apache.xmlgraphics:batik-xml:1.19'
+    implementation 'org.apache.xmlgraphics:batik-parser:1.19'
+    implementation 'org.apache.xmlgraphics:batik-css:1.19'
+
     // Testing
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
 }
