@@ -1,5 +1,6 @@
 package com.rebeatbox.ui;
 
+import com.rebeatbox.engine.LiveNoteEventListener;
 import com.rebeatbox.engine.NoteEventBus;
 import com.rebeatbox.engine.PlaybackController;
 import com.rebeatbox.engine.RealtimeReceiver;
@@ -77,7 +78,7 @@ public class ReBeatBoxWindow extends JFrame {
         sidebarPanel.getContentPanel().add(drumPadGrid, BorderLayout.CENTER);
 
         // Phase 3: PianoRollPanel live note flash (D-10)
-        eventBus.subscribeLive(new com.rebeatbox.engine.LiveNoteEventListener() {
+        eventBus.subscribeLive(new LiveNoteEventListener() {
             @Override
             public void onLiveNoteOn(int note, int velocity) {
                 pianoRollPanel.repaint();

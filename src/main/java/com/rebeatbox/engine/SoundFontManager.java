@@ -1,7 +1,15 @@
 package com.rebeatbox.engine;
 
+import com.sun.media.sound.AudioSynthesizer;
+
 import javax.sound.midi.*;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SoundFontManager {
     private Synthesizer synthesizer;
@@ -11,20 +19,16 @@ public class SoundFontManager {
         synthesizer = MidiSystem.getSynthesizer();
 
         // Reduce audio buffer for lower latency (Phase 3 live performance)
-        // Default Gervill buffer adds ~100-200ms — custom line drops to ~23ms
+        // Default Gervill buffer ~8192 bytes ≈ 93ms — custom 2048-byte buffer drops to ~23ms
         try {
-            javax.sound.sampled.AudioFormat format = new javax.sound.sampled.AudioFormat(
-                44100, 16, 2, true, false);
-            javax.sound.sampled.DataLine.Info info = new javax.sound.sampled.DataLine.Info(
-                javax.sound.sampled.SourceDataLine.class, format);
-            if (javax.sound.sampled.AudioSystem.isLineSupported(info)) {
-                javax.sound.sampled.SourceDataLine line =
-                    (javax.sound.sampled.SourceDataLine) javax.sound.sampled.AudioSystem.getLine(info);
-                // 2048 byte buffer ≈ 23ms at 44100Hz/16bit/stereo (vs default ~8192 ≈ 93ms)
+            AudioFormat format = new AudioFormat(44100, 16, 2, true, false);
+            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+            if (AudioSystem.isLineSupported(info)) {
+                SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
                 line.open(format, 2048);
                 line.start();
-                if (synthesizer instanceof com.sun.media.sound.AudioSynthesizer audioSynth) {
-                    java.util.Map<String, Object> props = new java.util.HashMap<>();
+                if (synthesizer instanceof AudioSynthesizer audioSynth) {
+                    Map<String, Object> props = new HashMap<>();
                     props.put("latency", 50000L); // 50ms target in microseconds
                     audioSynth.open(line, props);
                     System.out.println("Synthesizer opened with low-latency audio line (buffer: 2048 bytes)");

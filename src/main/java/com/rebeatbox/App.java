@@ -2,6 +2,8 @@ package com.rebeatbox;
 
 import com.rebeatbox.engine.*;
 import com.rebeatbox.ui.ReBeatBoxWindow;
+import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
+import org.pushingpixels.radiance.theming.api.skin.NightShadeSkin;
 
 import javax.sound.midi.Synthesizer;
 import javax.swing.*;
@@ -11,9 +13,8 @@ public class App {
         SwingUtilities.invokeLater(() -> {
             // 1. Apply Radiance NightShade dark skin (before any window creation)
             try {
-                org.pushingpixels.radiance.theming.api.skin.NightShadeSkin skin =
-                    new org.pushingpixels.radiance.theming.api.skin.NightShadeSkin();
-                org.pushingpixels.radiance.theming.api.RadianceThemingCortex.GlobalScope.setSkin(skin);
+                NightShadeSkin skin = new NightShadeSkin();
+                RadianceThemingCortex.GlobalScope.setSkin(skin);
             } catch (Exception e) {
                 System.err.println("Warning: Failed to apply Radiance skin: " + e.getMessage());
                 // Continue even without skin — use plain Swing look

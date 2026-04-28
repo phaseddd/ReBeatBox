@@ -3,6 +3,7 @@ package com.rebeatbox.ui;
 import com.rebeatbox.engine.PlaybackController;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -107,7 +108,7 @@ public class ControlBar extends JPanel {
         openButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle("Open MIDI File");
-            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MIDI Files (*.mid)", "mid"));
+            chooser.setFileFilter(new FileNameExtensionFilter("MIDI Files (*.mid)", "mid"));
             if (onFileOpen != null) onFileOpen.accept(chooser);
         });
 

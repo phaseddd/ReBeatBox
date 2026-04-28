@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -487,14 +488,14 @@ public class PianoRollPanel extends JPanel {
     private static BufferedImage applyConvolveBlur(BufferedImage source, float[] kernel) {
         // Horizontal pass
         float[] hData = kernel.clone();
-        java.awt.image.Kernel hk = new java.awt.image.Kernel(kernel.length, 1, hData);
+        Kernel hk = new Kernel(kernel.length, 1, hData);
         ConvolveOp hOp = new ConvolveOp(hk, ConvolveOp.EDGE_NO_OP, null);
         BufferedImage hBlurred = hOp.filter(source, null);
 
         // Vertical pass
         float[] vData = new float[kernel.length];
         System.arraycopy(kernel, 0, vData, 0, kernel.length);
-        java.awt.image.Kernel vk = new java.awt.image.Kernel(1, kernel.length, vData);
+        Kernel vk = new Kernel(1, kernel.length, vData);
         ConvolveOp vOp = new ConvolveOp(vk, ConvolveOp.EDGE_NO_OP, null);
         return vOp.filter(hBlurred, null);
     }
