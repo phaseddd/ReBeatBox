@@ -140,6 +140,23 @@ Plans:
 - GLITCH-03: Note tracks rendered with neon glow lines
 - GLITCH-04: Custom cyber-styled SVG icon set
 
+**Plans:** 6 plans in 2 waves
+
+Plans:
+- [ ] 04-01-PLAN.md — Foundation Layer: ThemeManager + SvgIconLoader + Batik dependencies + 12 SVG icon files
+- [ ] 04-02-PLAN.md — New Visual Effects: ParticleSystem + GlitchTransition
+- [ ] 04-03-PLAN.md — PianoRollPanel glow amplification (kernel 5->7, sigma 2.0->3.5) + velocity-to-alpha mapping
+- [ ] 04-04-PLAN.md — Transport + Sidebar: ThemeManager colors, SVG icons, Timeline animation, GlitchTransition, PianoRollPanel BG
+- [ ] 04-05-PLAN.md — Live + Background Components: ThemeManager colors, PadButton animation, KeyboardHintPanel D-30/D-31, PlaceholderPanel
+- [ ] 04-06-PLAN.md — Integration Wiring: ReBeatBoxWindow GlassPane + ParticleSystem subscriptions + file load GlitchTransition + App.java init
+
+**Wave Structure:**
+
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 04-01, 04-02, 04-03 | Foundation — ThemeManager + SvgIconLoader + Batik, ParticleSystem + GlitchTransition, PianoRollPanel glow amplification (all independent, parallel) |
+| 2 | 04-04, 04-05, 04-06 | UI integration — ControlBar/SidebarPanel theme + animation + icons, live component theming, ParticleSystem wiring + App.java startup init (all independent, parallel) |
+
 **Success Criteria:**
 1. Particle burst appears on every note trigger (playback and live), max 200 particles with consistent 60fps
 2. Glitch transition plays when switching between views/modes
@@ -205,4 +222,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 3 planned*
+*Last updated: 2026-04-28 — Phase 4 planned (6 plans, 2 waves)*
