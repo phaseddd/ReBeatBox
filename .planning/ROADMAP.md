@@ -98,6 +98,23 @@ Plans:
 - LIVE-03: Live notes play over background MIDI playback (overlay mode)
 - LIVE-04: Drum pad grid — each pad triggers a different percussion sound
 
+**Plans:** 5 plans in 3 waves
+
+Plans:
+- [ ] 03-01-PLAN.md — Engine foundation: RealtimeReceiver channel overload, LiveNoteEventListener interface, NoteEventBus live events
+- [ ] 03-02-PLAN.md — KeyboardMapper: D-01 three-row key-to-MIDI mapping table + boolean[128] dedup
+- [ ] 03-03-PLAN.md — KeyboardHintPanel: three-row virtual keyboard with neon cyan highlight feedback
+- [ ] 03-04-PLAN.md — Drum Pads: PadButton with mouse press/release NoteOn/Off + DrumPadGrid 4x4 container
+- [ ] 03-05-PLAN.md — Integration: ReBeatBoxWindow KeyboardFocusManager dispatcher + WindowFocusListener + full wiring
+
+**Wave Structure:**
+
+| Wave | Plans | Description |
+|------|-------|-------------|
+| 1 | 03-01, 03-02, 03-03 | Engine extensions + KeyboardMapper + KeyboardHintPanel (all independent, parallel) |
+| 2 | 03-04 | Drum pads (depends on 03-01 RealtimeReceiver channel overload) |
+| 3 | 03-05 | Integration wiring (depends on all prior plans) |
+
 **Success Criteria:**
 1. Pressing QWERTY keys triggers audible MIDI notes with <30ms perceived delay
 2. Releasing keys correctly sends NoteOff; no stuck notes
@@ -188,4 +205,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 2 executed*
+*Last updated: 2026-04-28 — Phase 3 planned*
