@@ -34,9 +34,9 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 | 5     | ○      | 0/?   | 0%       |
 
 ### Resume Info
-- Stopped at: Phase 2 execution complete
-- Resume file: `.planning/phases/02-visualization/02-02-SUMMARY.md`
+- Stopped at: Phase 3 context gathered
+- Resume file: `.planning/phases/03-live-performance/03-CONTEXT.md`
 
 ---
 *State initialized: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 2 shipped*
+*Last updated: 2026-04-28 — Phase 3 context gathered*
