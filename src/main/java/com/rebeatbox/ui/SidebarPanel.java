@@ -49,4 +49,8 @@ public class SidebarPanel extends JPanel {
     public boolean isExpanded() {
         return expanded;
     }
+
+    public JPanel getContentPanel() {
+        return contentPanel;
+    }
 }

@@ -52,7 +52,7 @@ public class App {
 
             // 3. Create UI and wire engine
             ReBeatBoxWindow window = new ReBeatBoxWindow();
-            window.wireEngine(controller, receiver);
+            window.wireEngine(controller, receiver, eventBus);
             window.setVisible(true);
         });
     }
