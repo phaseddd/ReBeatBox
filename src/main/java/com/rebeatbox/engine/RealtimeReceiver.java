@@ -9,7 +9,7 @@ public class RealtimeReceiver {
         this.receiver = synthesizer.getReceiver();
     }
 
-    RealtimeReceiver(Receiver receiver) {
+    public RealtimeReceiver(Receiver receiver) {
         this.receiver = receiver;
     }
 
