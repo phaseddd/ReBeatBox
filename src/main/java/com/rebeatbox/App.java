@@ -2,6 +2,8 @@ package com.rebeatbox;
 
 import com.rebeatbox.engine.*;
 import com.rebeatbox.ui.ReBeatBoxWindow;
+import com.rebeatbox.ui.SvgIconLoader;
+import com.rebeatbox.ui.ThemeManager;
 import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
 import org.pushingpixels.radiance.theming.api.skin.NightShadeSkin;
 
@@ -18,6 +20,18 @@ public class App {
             } catch (Exception e) {
                 System.err.println("Warning: Failed to apply Radiance skin: " + e.getMessage());
                 // Continue even without skin — use plain Swing look
+            }
+
+            // Phase 4: Pre-load SVG icons (D-24: loaded at startup for zero-latency icon display)
+            // ThemeManager has no init method — all constants are static final, initialized on first class load.
+            try {
+                SvgIconLoader.preload();
+                System.out.println("SVG icons pre-loaded (" +
+                    "play, pause, stop, restart, open-file, collapse-left, expand-right, " +
+                    "app-icon, bpm, volume, keyboard-mode, drum-mode)");
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to preload SVG icons: " + e.getMessage());
+                // Continue — icons will be loaded on-demand with fallback
             }
 
             // 2. Initialize MIDI engine
