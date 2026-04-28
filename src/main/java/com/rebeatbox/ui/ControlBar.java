@@ -7,7 +7,13 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
+
+import org.pushingpixels.radiance.animation.api.Timeline;
+import org.pushingpixels.radiance.animation.api.Timeline.TimelineState;
+import org.pushingpixels.radiance.animation.api.callback.TimelineCallback;
+import org.pushingpixels.radiance.animation.api.ease.Spline;
 
 public class ControlBar extends JPanel {
     private JButton restartButton, playButton, pauseButton, stopButton, openButton;
@@ -21,13 +27,13 @@ public class ControlBar extends JPanel {
 
     public ControlBar() {
         setLayout(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        setBackground(new Color(0x16213e));
+        setBackground(ThemeManager.BG_SURFACE);
 
         // Transport buttons
-        restartButton = createTransportButton("⏮", "Restart");
-        playButton = createTransportButton("▶", "Play");
-        pauseButton = createTransportButton("⏸", "Pause");
-        stopButton = createTransportButton("⏹", "Stop");
+        restartButton = createTransportButton("restart", "Restart");
+        playButton     = createTransportButton("play",    "Play");
+        pauseButton    = createTransportButton("pause",   "Pause");
+        stopButton     = createTransportButton("stop",    "Stop");
 
         add(restartButton);
         add(playButton);
@@ -37,7 +43,7 @@ public class ControlBar extends JPanel {
 
         // BPM
         bpmLabel = new JLabel("BPM: 120");
-        bpmLabel.setForeground(new Color(0xe0e0e0));
+        bpmLabel.setForeground(ThemeManager.TEXT_PRIMARY);
         bpmSlider = new JSlider(20, 300, 120);
         bpmSlider.setPreferredSize(new Dimension(140, 36));
         add(bpmLabel);
@@ -46,7 +52,7 @@ public class ControlBar extends JPanel {
 
         // Volume
         volumeLabel = new JLabel("Vol: 75%");
-        volumeLabel.setForeground(new Color(0xe0e0e0));
+        volumeLabel.setForeground(ThemeManager.TEXT_PRIMARY);
         volumeSlider = new JSlider(0, 100, 75);
         volumeSlider.setPreferredSize(new Dimension(100, 36));
         add(volumeLabel);
@@ -55,21 +61,39 @@ public class ControlBar extends JPanel {
 
         // Time
         timeLabel = new JLabel("00:00 / 00:00");
-        timeLabel.setForeground(new Color(0xe0e0e0));
+        timeLabel.setForeground(ThemeManager.TEXT_PRIMARY);
         add(timeLabel);
 
         // Progress bar
         progressBar = new JProgressBar(0, 100);
         progressBar.setPreferredSize(new Dimension(240, 18));
         progressBar.setStringPainted(false);
+        progressBar.setForeground(ThemeManager.accentForHue(ThemeManager.HUE_TRANSPORT));
         add(progressBar);
         add(Box.createHorizontalStrut(4));
 
         // File open
-        openButton = new JButton("📂");
-        openButton.setPreferredSize(new Dimension(36, 36));
-        openButton.setToolTipText("Open MIDI file");
+        openButton = new JButton();
+        openButton.setPreferredSize(new Dimension(38, 38));
+        openButton.setToolTipText("Open MIDI File");
+        openButton.setFocusable(false);
+        openButton.setBorder(BorderFactory.createLineBorder(ThemeManager.BORDER_IDLE, 1));
+        openButton.setBackground(ThemeManager.BG_ELEVATED);
+        openButton.getAccessibleContext().setAccessibleName("Open MIDI file");
+        try {
+            BufferedImage icon = SvgIconLoader.getIcon("open-file", 38);
+            if (icon != null) openButton.setIcon(new ImageIcon(icon));
+        } catch (Exception e) {
+            System.err.println("Failed to load 'open-file' icon: " + e.getMessage());
+        }
         add(openButton);
+
+        // Wire hover/press animations per D-05, D-06 (all transport buttons + open)
+        wireButtonAnimation(restartButton, ThemeManager.HUE_TRANSPORT);
+        wireButtonAnimation(playButton,     ThemeManager.HUE_TRANSPORT);
+        wireButtonAnimation(pauseButton,    ThemeManager.HUE_TRANSPORT);
+        wireButtonAnimation(stopButton,     ThemeManager.HUE_TRANSPORT);
+        wireButtonAnimation(openButton,     ThemeManager.HUE_TRANSPORT);
 
         // Timer for progress + state sync
         stateTimer = new Timer(100, e -> syncButtonStates());
@@ -193,12 +217,153 @@ public class ControlBar extends JPanel {
         }
     }
 
-    private JButton createTransportButton(String text, String tooltip) {
-        JButton btn = new JButton(text);
+    private JButton createTransportButton(String iconName, String tooltip) {
+        JButton btn = new JButton();
         btn.setPreferredSize(new Dimension(38, 38));
         btn.setToolTipText(tooltip);
         btn.setFocusable(false);
+        btn.setBorder(BorderFactory.createLineBorder(ThemeManager.BORDER_IDLE, 1));
+        btn.setBackground(ThemeManager.BG_ELEVATED);
+
+        // Set SVG icon
+        try {
+            BufferedImage icon = SvgIconLoader.getIcon(iconName, 38);
+            if (icon != null) {
+                btn.setIcon(new ImageIcon(icon));
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load SVG icon '" + iconName + "': " + e.getMessage());
+        }
+
+        // Accessible name per UI-SPEC Copywriting Contract
+        btn.getAccessibleContext().setAccessibleName(tooltip);
+
         return btn;
+    }
+
+    /**
+     * Linearly interpolates between two Colors.
+     * Used by Timeline callbacks for smooth border/fill transitions.
+     */
+    private static Color interpolateColor(Color a, Color b, float t) {
+        float ti = Math.max(0.0f, Math.min(1.0f, t));
+        int r = (int)(a.getRed()   + ti * (b.getRed()   - a.getRed()));
+        int g = (int)(a.getGreen() + ti * (b.getGreen() - a.getGreen()));
+        int bl = (int)(a.getBlue() + ti * (b.getBlue() - a.getBlue()));
+        return new Color(Math.min(255, Math.max(0, r)),
+                         Math.min(255, Math.max(0, g)),
+                         Math.min(255, Math.max(0, bl)));
+    }
+
+    /**
+     * Wires Radiance Timeline hover border-color and press scale animations
+     * onto a JButton. Per D-05, D-06, D-07.
+     *
+     * <p>Hover: borderColor transitions from BORDER_IDLE to accentForHue(regionHue)
+     * in 200ms. Press: scale drops to 0.95x in 75ms, springs back to 1.00x in 150ms.
+     */
+    private void wireButtonAnimation(JButton button, float regionHue) {
+        final Color accentColor = ThemeManager.accentForHue(regionHue);
+
+        button.addMouseListener(new MouseAdapter() {
+            private Timeline hoverIn;
+            private Timeline hoverOut;
+            private Timeline pressDown;
+            private Timeline pressUp;
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (hoverOut != null) hoverOut.abort();
+                if (hoverIn != null) hoverIn.abort();
+                hoverIn = Timeline.builder(button)
+                    .setDuration(200)
+                    .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+                    .addCallback(new TimelineCallback() {
+                        @Override
+                        public void onTimelinePulse(float durationFraction, float timelinePosition) {
+                            Color c = interpolateColor(ThemeManager.BORDER_IDLE, accentColor, timelinePosition);
+                            button.setBorder(BorderFactory.createLineBorder(c, 1));
+                        }
+                        @Override
+                        public void onTimelineStateChanged(TimelineState old, TimelineState n, float f, float p) {}
+                    })
+                    .build();
+                hoverIn.play();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (hoverIn != null) hoverIn.abort();
+                if (hoverOut != null) hoverOut.abort();
+                hoverOut = Timeline.builder(button)
+                    .setDuration(250)
+                    .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+                    .addCallback(new TimelineCallback() {
+                        @Override
+                        public void onTimelinePulse(float durationFraction, float timelinePosition) {
+                            Color c = interpolateColor(accentColor, ThemeManager.BORDER_IDLE, timelinePosition);
+                            button.setBorder(BorderFactory.createLineBorder(c, 1));
+                        }
+                        @Override
+                        public void onTimelineStateChanged(TimelineState old, TimelineState n, float f, float p) {}
+                    })
+                    .build();
+                hoverOut.play();
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (pressUp != null) pressUp.abort();
+                    if (pressDown != null) pressDown.abort();
+                    pressDown = Timeline.builder(button)
+                        .setDuration(75)
+                        .addCallback(new TimelineCallback() {
+                            @Override
+                            public void onTimelinePulse(float durationFraction, float timelinePosition) {
+                                float scale = 1.00f + timelinePosition * (0.95f - 1.00f);
+                                Dimension pref = button.getPreferredSize();
+                                button.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                                button.getParent().revalidate();
+                            }
+                            @Override
+                            public void onTimelineStateChanged(TimelineState old, TimelineState n, float f, float p) {}
+                        })
+                        .build();
+                    pressDown.play();
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    if (pressDown != null) pressDown.abort();
+                    if (pressUp != null) pressUp.abort();
+                    pressUp = Timeline.builder(button)
+                        .setDuration(150)
+                        .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+                        .addCallback(new TimelineCallback() {
+                            @Override
+                            public void onTimelinePulse(float durationFraction, float timelinePosition) {
+                                float scale = 0.95f + timelinePosition * (1.00f - 0.95f);
+                                Dimension pref = button.getPreferredSize();
+                                button.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                                button.getParent().revalidate();
+                            }
+                            @Override
+                            public void onTimelineStateChanged(TimelineState old, TimelineState n, float f, float p) {
+                                if (n == TimelineState.DONE) {
+                                    // Restore exact preferred size
+                                    button.setPreferredSize(new Dimension(38, 38));
+                                    button.getParent().revalidate();
+                                }
+                            }
+                        })
+                        .build();
+                    pressUp.play();
+                }
+            }
+        });
     }
 
     private String formatTime(long micros) {
