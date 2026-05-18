@@ -17,7 +17,7 @@ import org.pushingpixels.radiance.animation.api.ease.Spline;
 public class SidebarPanel extends JPanel {
     private boolean expanded = true;
     private final int expandedWidth = 240;
-    private final int collapsedWidth = 0;
+    private final int collapsedWidth = 28; // narrow strip keeps toggle button reachable
     private final JButton toggleButton;
     private final JPanel contentPanel;
 
@@ -76,6 +76,7 @@ public class SidebarPanel extends JPanel {
             } else {
                 // No snapshot available (first expand or snapshot was flushed) — instant expand
                 expanded = true;
+                contentPanel.setVisible(true);
                 updateToggleIcon();
                 setPreferredSize(new Dimension(expandedWidth, getHeight()));
                 revalidate();
@@ -98,6 +99,7 @@ public class SidebarPanel extends JPanel {
         if (w <= 0 || h <= 0) {
             // Fallback: instant collapse if no pixels to snapshot
             expanded = false;
+            contentPanel.setVisible(false);
             updateToggleIcon();
             setPreferredSize(new Dimension(collapsedWidth, getHeight()));
             revalidate();
@@ -141,6 +143,7 @@ public class SidebarPanel extends JPanel {
                     if (newState == TimelineState.DONE) {
                         setGlitchImage(null);
                         expanded = false;
+                        contentPanel.setVisible(false);
                         updateToggleIcon();
                         setPreferredSize(new Dimension(collapsedWidth, getHeight()));
                         revalidate();
@@ -160,6 +163,7 @@ public class SidebarPanel extends JPanel {
     private void performGlitchExpand(BufferedImage sourceSnapshot) {
         // Resize to expanded width first so the component has dimensions to paint into
         expanded = true;
+        contentPanel.setVisible(true);
         updateToggleIcon();
         setPreferredSize(new Dimension(expandedWidth, getHeight()));
         revalidate();
@@ -210,7 +214,7 @@ public class SidebarPanel extends JPanel {
     }
 
     private void updateToggleIcon() {
-        String iconName = expanded ? "collapse-left" : "expand-right";
+        String iconName = expanded ? "expand-right" : "collapse-left";
         String tooltip = expanded ? "Collapse sidebar" : "Expand sidebar";
         toggleButton.setToolTipText(tooltip);
         toggleButton.getAccessibleContext().setAccessibleName(tooltip);

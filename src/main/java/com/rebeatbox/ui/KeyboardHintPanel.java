@@ -132,28 +132,55 @@ public class KeyboardHintPanel extends JPanel {
         if (whiteKeyCount == 0) return;
         int whiteKeyWidth = w / whiteKeyCount;
 
-        // Pass 1: white keys
+        // Pass 1: idle white keys — always count, only draw if not pressed
         int whiteIdx = 0;
         for (KeyDef key : keys) {
             if (key.isBlack) continue;
-            int keyX = whiteIdx * whiteKeyWidth;
-            int keyW = whiteKeyWidth - 1;
-            drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            if (!isKeyHighlighted(key.keyCode)) {
+                int keyX = whiteIdx * whiteKeyWidth;
+                int keyW = whiteKeyWidth - 1;
+                drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            }
             whiteIdx++;
         }
 
-        // Pass 2: black keys on top
+        // Pass 2: idle black keys — always count, only draw if not pressed
         int blackKeyWidth = (int) (whiteKeyWidth * BLACK_KEY_WIDTH_RATIO);
         int blackKeyHeight = (int) (ROW_HEIGHT * BLACK_KEY_HEIGHT_RATIO);
         int blackKeyY = rowY;
 
         whiteIdx = 0;
-        for (int i = 0; i < keys.length; i++) {
-            if (keys[i].isBlack) {
-                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
-                drawSingleKey(g2d, keys[i], keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
-            } else {
+        for (KeyDef key : keys) {
+            if (!key.isBlack) {
                 whiteIdx++;
+                continue;
+            }
+            if (!isKeyHighlighted(key.keyCode)) {
+                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
+                drawSingleKey(g2d, key, keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
+            }
+        }
+
+        // Pass 3: pressed keys rendered on top — never obscured by idle keys
+        whiteIdx = 0;
+        for (KeyDef key : keys) {
+            if (key.isBlack) continue;
+            if (isKeyHighlighted(key.keyCode)) {
+                int keyX = whiteIdx * whiteKeyWidth;
+                int keyW = whiteKeyWidth - 1;
+                drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            }
+            whiteIdx++;
+        }
+        whiteIdx = 0;
+        for (KeyDef key : keys) {
+            if (!key.isBlack) {
+                whiteIdx++;
+                continue;
+            }
+            if (isKeyHighlighted(key.keyCode)) {
+                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
+                drawSingleKey(g2d, key, keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
             }
         }
     }

@@ -284,7 +284,7 @@ public class ReBeatBoxWindow extends JFrame {
      */
     private void runFileLoadGlitch(BufferedImage snapshot) {
         final int maxOffset = 25; // UI-SPEC: file load max offset 25px
-        final int duration = 300; // D-18: file load transition 300ms
+        final int duration = 500; // file load glitch transition 500ms
 
         // Calculate PianoRollPanel position in GlassPane coordinate space
         // so the glitch overlay renders directly over the piano roll, not at (0,0).
@@ -302,7 +302,8 @@ public class ReBeatBoxWindow extends JFrame {
                     int offset = Math.round(maxOffset * bellCurve);
 
                     // Apply glitch to snapshot (not to live PianoRollPanel — per D-19/Pitfall 5)
-                    BufferedImage glitched = GlitchTransition.applyRgbSplit(snapshot, -offset, offset);
+                    // Red samples from right → shifts LEFT; Blue samples from left → shifts RIGHT
+                    BufferedImage glitched = GlitchTransition.applyRgbSplit(snapshot, offset, -offset);
 
                     // Render glitch overlay via ParticleSystem GlassPane at the correct position
                     particleSystem.setOverlayImage(glitched, overlayX, overlayY);

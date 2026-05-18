@@ -99,14 +99,14 @@ public final class ThemeManager {
      *
      * @param velocity     MIDI velocity 0–127
      * @param aboveTrigger {@code true} if note is above the trigger line (future/current notes)
-     * @return alpha value: 0.30–1.00 (above) or 0.15–0.40 (below)
+     * @return alpha value: 0.55–1.00 (above) or 0.25–0.65 (below)
      */
     public static float velocityToAlpha(int velocity, boolean aboveTrigger) {
         float v = velocity / 127.0f;
         if (aboveTrigger) {
-            return 0.30f + v * 0.70f;  // 0.30 at vel=0, 1.00 at vel=127
+            return 0.55f + v * 0.45f;  // 0.55 at vel=0, 1.00 at vel=127
         } else {
-            return 0.15f + v * 0.25f;  // 0.15 at vel=0, 0.40 at vel=127
+            return 0.25f + v * 0.40f;  // 0.25 at vel=0, 0.65 at vel=127
         }
     }
 

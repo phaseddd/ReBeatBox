@@ -436,45 +436,48 @@ public class PianoRollPanel extends JPanel {
         width = Math.max(1, width);
         height = Math.max(1, height);
 
+        Composite origComposite = g2d.getComposite();
+
+        // Step 1: Draw the solid note bar at full velocity alpha.
+        // This ensures the bar is always clearly visible regardless of blur intensity.
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.setColor(color);
+        g2d.fillRect(x, y, width, height);
+
+        // Step 2: Build blurred glow halo and composite at reduced alpha.
+        // The blur spreads color into the transparent padded region; by compositing
+        // it on top of the already-solid bar, the glow enhances without dimming.
         int imgW = width + BLUR_PAD * 2;
         int imgH = height + BLUR_PAD * 2;
 
         BufferedImage barImg = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D barG = barImg.createGraphics();
-
         barG.setColor(color);
         barG.fillRect(BLUR_PAD, BLUR_PAD, width, height);
         barG.dispose();
 
-        // Apply separable GaussianBlur (horizontal + vertical pass)
         float[] kernel = buildGaussianKernel(BLUR_KERNEL_SIZE, BLUR_SIGMA);
         BufferedImage blurred = applyConvolveBlur(barImg, kernel);
 
-        // Alpha-composite the blurred note onto the main canvas
-        Composite origComposite = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.35f));
         g2d.drawImage(blurred, x - BLUR_PAD, y - BLUR_PAD, null);
         g2d.setComposite(origComposite);
     }
 
     /**
      * Maps MIDI velocity (0-127) to an alpha value for note bar opacity.
-     * Per D-27, D-28, D-29. Preserves the above/below trigger line brightness
-     * distinction from Phase 2 D-06.
+     * Higher minimum alpha than Phase 2 to ensure notes remain visible on dark background,
+     * while preserving discernible velocity brightness range.
      *
-     * <p>Above trigger line: alpha 0.30 (vel=0) -&gt; 1.00 (vel=127)
-     * <p>Below trigger line: alpha 0.15 (vel=0) -&gt; 0.40 (vel=127)
-     *
-     * @param velocity     MIDI velocity 0-127
-     * @param aboveTrigger true if the note bar is above the trigger line
-     * @return alpha value for compositing this note bar
+     * <p>Above trigger line: alpha 0.55 (vel=0) -&gt; 1.00 (vel=127)
+     * <p>Below trigger line: alpha 0.25 (vel=0) -&gt; 0.65 (vel=127)
      */
     private static float velocityToAlpha(int velocity, boolean aboveTrigger) {
         float v = velocity / 127.0f;
         if (aboveTrigger) {
-            return 0.30f + v * 0.70f;
+            return 0.55f + v * 0.45f;
         } else {
-            return 0.15f + v * 0.25f;
+            return 0.25f + v * 0.40f;
         }
     }
 
