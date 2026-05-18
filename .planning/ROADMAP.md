@@ -101,11 +101,11 @@ Plans:
 **Plans:** 5 plans in 3 waves
 
 Plans:
-- [ ] 03-01-PLAN.md — Engine foundation: RealtimeReceiver channel overload, LiveNoteEventListener interface, NoteEventBus live events
-- [ ] 03-02-PLAN.md — KeyboardMapper: D-01 three-row key-to-MIDI mapping table + boolean[128] dedup
-- [ ] 03-03-PLAN.md — KeyboardHintPanel: three-row virtual keyboard with neon cyan highlight feedback
-- [ ] 03-04-PLAN.md — Drum Pads: PadButton with mouse press/release NoteOn/Off + DrumPadGrid 4x4 container
-- [ ] 03-05-PLAN.md — Integration: ReBeatBoxWindow KeyboardFocusManager dispatcher + WindowFocusListener + full wiring
+- [x] 03-01-PLAN.md — Engine foundation: RealtimeReceiver channel overload, LiveNoteEventListener interface, NoteEventBus live events
+- [x] 03-02-PLAN.md — KeyboardMapper: D-01 three-row key-to-MIDI mapping table + boolean[128] dedup
+- [x] 03-03-PLAN.md — KeyboardHintPanel: three-row virtual keyboard with neon cyan highlight feedback
+- [x] 03-04-PLAN.md — Drum Pads: PadButton with mouse press/release NoteOn/Off + DrumPadGrid 4x4 container
+- [x] 03-05-PLAN.md — Integration: ReBeatBoxWindow KeyboardFocusManager dispatcher + WindowFocusListener + full wiring
 
 **Wave Structure:**
 
@@ -195,20 +195,20 @@ Plans:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAY-01 | Phase 1 | Pending |
-| PLAY-02 | Phase 1 | Pending |
-| PLAY-03 | Phase 1 | Pending |
-| PLAY-04 | Phase 1 | Pending |
-| PLAY-05 | Phase 1 | Pending |
-| UI-01 | Phase 1 | Pending |
-| CONT-02 | Phase 1 | Pending |
-| VIS-01 | Phase 2 | Pending |
-| VIS-02 | Phase 2 | Pending |
-| VIS-03 | Phase 2 | Pending |
-| LIVE-01 | Phase 3 | Pending |
-| LIVE-02 | Phase 3 | Pending |
-| LIVE-03 | Phase 3 | Pending |
-| LIVE-04 | Phase 3 | Pending |
+| PLAY-01 | Phase 1 | ✅ |
+| PLAY-02 | Phase 1 | ✅ |
+| PLAY-03 | Phase 1 | ✅ |
+| PLAY-04 | Phase 1 | ✅ |
+| PLAY-05 | Phase 1 | ✅ |
+| UI-01 | Phase 1 | ✅ |
+| CONT-02 | Phase 1 | ✅ |
+| VIS-01 | Phase 2 | ✅ |
+| VIS-02 | Phase 2 | ✅ |
+| VIS-03 | Phase 2 | ✅ |
+| LIVE-01 | Phase 3 | ✅ |
+| LIVE-02 | Phase 3 | ✅ |
+| LIVE-03 | Phase 3 | ✅ |
+| LIVE-04 | Phase 3 | ✅ |
 | UI-02 | Phase 4 | ✅ |
 | UI-03 | Phase 4 | ✅ |
 | GLITCH-01 | Phase 4 | ✅ |
@@ -222,4 +222,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-04-27*
-*Last updated: 2026-04-28 — Phase 4 planned (6 plans, 2 waves)*
+*Last updated: 2026-05-18 — Phase 1-4 complete, all 20/22 requirements met, Phase 3 UAT re-verified*

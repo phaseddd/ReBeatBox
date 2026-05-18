@@ -12,16 +12,15 @@ ReBeatBox 是一个赛博/Glitch 风格的 Java 桌面音乐应用。用户可�
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] 用户能导入 MIDI 文件并自动播放 — Phase 1 (PLAY-01~05, CONT-02)
+- [x] 用户能用键盘/鼠标实时触发节奏和音效 — Phase 3 (LIVE-01~04)
+- [x] 自动演奏时有音符跳动可视化（钢琴卷帘/瀑布流）— Phase 2 (VIS-01~03)
+- [x] 实时演奏时有点击反馈动画 — Phase 3 live highlight + Phase 4 particles
+- [x] 赛博/Glitch 风格 UI 主题（暗色 + 霓虹 + 粒子效果）— Phase 1 dark theme + Phase 4 full polish
 
 ### Active
 
-- [ ] 用户能导入 MIDI 文件并自动播放
-- [ ] 用户能用键盘/鼠标实时触发节奏和音效（鼓机/DJ 模式）
-- [ ] 自动演奏时有音符跳动可视化（钢琴卷帘/瀑布流）
-- [ ] 实时演奏时有点击反馈动画
-- [ ] 赛博/Glitch 风格 UI 主题（暗色 + 霓虹 + 粒子效果）
-- [ ] 应用内置示例曲谱/节奏 pattern，开箱即玩
+- [ ] 应用内置示例曲谱/节奏 pattern，开箱即玩 — Phase 5 (CONT-01, CONT-03)
 
 ### Out of Scope
 
@@ -52,10 +51,10 @@ ReBeatBox 是一个赛博/Glitch 风格的 Java 桌面音乐应用。用户可�
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 路线 C（混合模式）| 自动演奏保证"好看"，实时交互保证"好玩"，共享 MIDI 引擎不增加架构复杂度 | — Pending |
-| 赛博/Glitch 视觉风格 | 用户明确偏好，aurora 框架风格匹配度高 | — Pending |
-| MIDI 作为音乐数据协议 | Java 原生支持，标准化，文件小，适合实时交互 | — Pending |
-| 不参照原书 BeatBox 代码 | 原书是教学级代码，架构和 UI 都过时了 | — Pending |
+| 路线 C（混合模式）| 自动演奏保证"好看"，实时交互保证"好玩"，共享 MIDI 引擎不增加架构复杂度 | ✅ Phase 1-3 实现：Sequencer + RealtimeReceiver 共享 Synthesizer |
+| 赛博/Glitch 视觉风格 | 用户明确偏好，aurora 框架风格匹配度高 | ✅ Phase 1 NightShade + Phase 4 ThemeManager/ParticleSystem/GlitchTransition |
+| MIDI 作为音乐数据协议 | Java 原生支持，标准化，文件小，适合实时交互 | ✅ javax.sound.midi + Gervill + FluidR3_GM.sf2 |
+| 不参照原书 BeatBox 代码 | 原书是教学级代码，架构和 UI 都过时了 | ✅ 全量重写，Radiance 组件库 + 自定义 paint |
 
 ## Evolution
 
@@ -75,4 +74,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-27 after initialization*
+*Last updated: 2026-05-18 — Phase 1-4 validated, Key Decisions documented*
