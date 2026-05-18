@@ -242,6 +242,7 @@ public class SidebarPanel extends JPanel {
      */
     private void wireToggleAnimation() {
         final Color accentColor = ThemeManager.accentForHue(ThemeManager.HUE_SIDEBAR);
+        final Dimension origSize = new Dimension(toggleButton.getPreferredSize());
 
         toggleButton.addMouseListener(new MouseAdapter() {
             private Timeline hoverIn, hoverOut, pressDown, pressUp;
@@ -292,8 +293,7 @@ public class SidebarPanel extends JPanel {
                     .addCallback(new TimelineCallback() {
                         @Override public void onTimelinePulse(float df, float tp) {
                             float scale = 1.00f + tp * (0.95f - 1.00f);
-                            Dimension pref = toggleButton.getPreferredSize();
-                            toggleButton.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                            toggleButton.setPreferredSize(new Dimension((int)(origSize.width * scale), (int)(origSize.height * scale)));
                             toggleButton.getParent().revalidate();
                         }
                         @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {}
@@ -313,13 +313,12 @@ public class SidebarPanel extends JPanel {
                     .addCallback(new TimelineCallback() {
                         @Override public void onTimelinePulse(float df, float tp) {
                             float scale = 0.95f + tp * (1.00f - 0.95f);
-                            Dimension pref = toggleButton.getPreferredSize();
-                            toggleButton.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                            toggleButton.setPreferredSize(new Dimension((int)(origSize.width * scale), (int)(origSize.height * scale)));
                             toggleButton.getParent().revalidate();
                         }
                         @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {
                             if (n == TimelineState.DONE) {
-                                toggleButton.setPreferredSize(new Dimension(24, 24));
+                                toggleButton.setPreferredSize(origSize);
                                 toggleButton.getParent().revalidate();
                             }
                         }

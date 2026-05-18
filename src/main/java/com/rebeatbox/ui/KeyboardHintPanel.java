@@ -73,7 +73,7 @@ public class KeyboardHintPanel extends JPanel {
     private static final KeyDef[][] ALL_ROWS = { ROW_0_KEYS, ROW_1_KEYS, ROW_2_KEYS };
 
     public KeyboardHintPanel() {
-        setBackground(ThemeManager.BG_ROOT);
+        setBackground(ThemeManager.BG_SURFACE);
         setDoubleBuffered(true);
         setPreferredSize(new Dimension(800, PANEL_HEIGHT));
         setToolTipText("");
@@ -110,7 +110,7 @@ public class KeyboardHintPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        g2d.setColor(ThemeManager.BG_ROOT);
+        g2d.setColor(ThemeManager.BG_SURFACE);
         g2d.fillRect(0, 0, w, h);
 
         for (int row = 0; row < ROW_COUNT; row++) {

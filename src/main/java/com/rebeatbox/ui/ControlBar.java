@@ -264,6 +264,7 @@ public class ControlBar extends JPanel {
      */
     private void wireButtonAnimation(JButton button, float regionHue) {
         final Color accentColor = ThemeManager.accentForHue(regionHue);
+        final Dimension origSize = new Dimension(button.getPreferredSize());
 
         button.addMouseListener(new MouseAdapter() {
             private Timeline hoverIn;
@@ -322,8 +323,7 @@ public class ControlBar extends JPanel {
                             @Override
                             public void onTimelinePulse(float durationFraction, float timelinePosition) {
                                 float scale = 1.00f + timelinePosition * (0.95f - 1.00f);
-                                Dimension pref = button.getPreferredSize();
-                                button.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                                button.setPreferredSize(new Dimension((int)(origSize.width * scale), (int)(origSize.height * scale)));
                                 button.getParent().revalidate();
                             }
                             @Override
@@ -346,15 +346,13 @@ public class ControlBar extends JPanel {
                             @Override
                             public void onTimelinePulse(float durationFraction, float timelinePosition) {
                                 float scale = 0.95f + timelinePosition * (1.00f - 0.95f);
-                                Dimension pref = button.getPreferredSize();
-                                button.setPreferredSize(new Dimension((int)(pref.width * scale), (int)(pref.height * scale)));
+                                button.setPreferredSize(new Dimension((int)(origSize.width * scale), (int)(origSize.height * scale)));
                                 button.getParent().revalidate();
                             }
                             @Override
                             public void onTimelineStateChanged(TimelineState old, TimelineState n, float f, float p) {
                                 if (n == TimelineState.DONE) {
-                                    // Restore exact preferred size
-                                    button.setPreferredSize(new Dimension(38, 38));
+                                    button.setPreferredSize(origSize);
                                     button.getParent().revalidate();
                                 }
                             }

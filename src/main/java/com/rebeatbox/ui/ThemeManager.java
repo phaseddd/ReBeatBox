@@ -16,13 +16,13 @@ public final class ThemeManager {
     // ---- Tiered dark backgrounds (D-03) ----
 
     /** Deepest background — PianoRollPanel canvas, glass pane base (60% dominant) */
-    public static final Color BG_ROOT = new Color(0x0A0A14);
+    public static final Color BG_ROOT = new Color(0x0D1120);
 
     /** Panel backgrounds — SidebarPanel, KeyboardHintPanel (30% secondary) */
-    public static final Color BG_SURFACE = new Color(0x12122A);
+    public static final Color BG_SURFACE = new Color(0x1A1E3C);
 
     /** Interactive element fills — buttons, sliders, pads (30% secondary) */
-    public static final Color BG_ELEVATED = new Color(0x1A1A3E);
+    public static final Color BG_ELEVATED = new Color(0x28305A);
 
     // ---- Semantic text colors (UI-SPEC Color section) ----
 
@@ -38,7 +38,7 @@ public final class ThemeManager {
     // ---- Border colors (D-05) ----
 
     /** Default idle border for all components */
-    public static final Color BORDER_IDLE = new Color(0x2A3A5E);
+    public static final Color BORDER_IDLE = new Color(0x3A5078);
 
     // BORDER_HOVER and BORDER_PRESS are computed via accentForHue(regionHue) at runtime
     // because each UI region uses a different neon hue zone (D-02).

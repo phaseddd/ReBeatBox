@@ -12,12 +12,12 @@ class ThemeManagerTest {
 
     @Test
     void testBackgroundColors() {
-        assertEquals(new Color(0x0A0A14), ThemeManager.BG_ROOT,
-                "BG_ROOT must be #0A0A14");
-        assertEquals(new Color(0x12122A), ThemeManager.BG_SURFACE,
-                "BG_SURFACE must be #12122A");
-        assertEquals(new Color(0x1A1A3E), ThemeManager.BG_ELEVATED,
-                "BG_ELEVATED must be #1A1A3E");
+        assertEquals(new Color(0x0D1120), ThemeManager.BG_ROOT,
+                "BG_ROOT must be #0D1120");
+        assertEquals(new Color(0x1A1E3C), ThemeManager.BG_SURFACE,
+                "BG_SURFACE must be #1A1E3C");
+        assertEquals(new Color(0x28305A), ThemeManager.BG_ELEVATED,
+                "BG_ELEVATED must be #28305A");
     }
 
     @Test
@@ -82,8 +82,8 @@ class ThemeManagerTest {
 
     @Test
     void testBorderColors() {
-        assertEquals(new Color(0x2A3A5E), ThemeManager.BORDER_IDLE,
-                "BORDER_IDLE must be #2A3A5E");
+        assertEquals(new Color(0x3A5078), ThemeManager.BORDER_IDLE,
+                "BORDER_IDLE must be #3A5078");
         assertEquals(new Color(0xFF4444), ThemeManager.DESTRUCTIVE,
                 "DESTRUCTIVE must be #FF4444");
     }

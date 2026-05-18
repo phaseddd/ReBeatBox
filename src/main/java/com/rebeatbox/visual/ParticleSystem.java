@@ -139,11 +139,13 @@ public final class ParticleSystem extends JComponent {
     private float emitOriginY;
 
     /**
-     * Temporary overlay image rendered on top of particles.
+     * Temporary overlay image rendered on top of particles at (overlayX, overlayY).
      * Used by ReBeatBoxWindow for file-load glitch transitions (D-16).
-     * Set to null to remove overlay.
+     * Set the image to null to remove overlay.
      */
     private transient BufferedImage overlayImage;
+    private int overlayX;
+    private int overlayY;
 
     // ------------------------------------------------------------------
     // Constructor
@@ -240,14 +242,18 @@ public final class ParticleSystem extends JComponent {
     }
 
     /**
-     * Sets a temporary overlay image rendered on top of particles.
+     * Sets a temporary overlay image rendered on top of particles at the given position.
      * Used by ReBeatBoxWindow for file-load glitch transitions (D-16).
-     * Set to null to remove overlay.
+     * Set the image to null to remove overlay.
      *
      * @param img the overlay image, or null to clear
+     * @param x   X position in this component's coordinate space
+     * @param y   Y position in this component's coordinate space
      */
-    public void setOverlayImage(BufferedImage img) {
+    public void setOverlayImage(BufferedImage img, int x, int y) {
         this.overlayImage = img;
+        this.overlayX = x;
+        this.overlayY = y;
     }
 
     // ------------------------------------------------------------------
@@ -470,7 +476,7 @@ public final class ParticleSystem extends JComponent {
         // Phase 4 integration: GlitchTransition overlay rendering (D-16)
         if (overlayImage != null) {
             g2d.setComposite(AlphaComposite.SrcOver);
-            g2d.drawImage(overlayImage, 0, 0, null);
+            g2d.drawImage(overlayImage, overlayX, overlayY, null);
         }
     }
 }

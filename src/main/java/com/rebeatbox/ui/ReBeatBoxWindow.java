@@ -132,6 +132,26 @@ public class ReBeatBoxWindow extends JFrame {
                 loadAndPlay(file);
             }
         });
+
+        // Phase 4: Set particle emit origin to center of PianoRollPanel area.
+        // Update on resize so bursts always originate from the piano roll region.
+        pianoRollPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                updateParticleEmitOrigin();
+            }
+        });
+        SwingUtilities.invokeLater(this::updateParticleEmitOrigin);
+    }
+
+    private void updateParticleEmitOrigin() {
+        if (particleSystem == null || pianoRollPanel == null) return;
+        Point pt = SwingUtilities.convertPoint(
+            pianoRollPanel,
+            pianoRollPanel.getWidth() / 2,
+            pianoRollPanel.getHeight() / 2,
+            particleSystem);
+        particleSystem.setEmitOrigin(pt.x, pt.y);
     }
 
     private void registerKeyboardDispatcher() {
@@ -266,6 +286,12 @@ public class ReBeatBoxWindow extends JFrame {
         final int maxOffset = 25; // UI-SPEC: file load max offset 25px
         final int duration = 300; // D-18: file load transition 300ms
 
+        // Calculate PianoRollPanel position in GlassPane coordinate space
+        // so the glitch overlay renders directly over the piano roll, not at (0,0).
+        Point panelOrigin = SwingUtilities.convertPoint(pianoRollPanel, 0, 0, particleSystem);
+        final int overlayX = panelOrigin.x;
+        final int overlayY = panelOrigin.y;
+
         Timeline glitchTimeline = Timeline.builder(this)
             .setDuration(duration)
             .addCallback(new TimelineCallback() {
@@ -278,8 +304,8 @@ public class ReBeatBoxWindow extends JFrame {
                     // Apply glitch to snapshot (not to live PianoRollPanel — per D-19/Pitfall 5)
                     BufferedImage glitched = GlitchTransition.applyRgbSplit(snapshot, -offset, offset);
 
-                    // Render glitch overlay via ParticleSystem GlassPane
-                    particleSystem.setOverlayImage(glitched);
+                    // Render glitch overlay via ParticleSystem GlassPane at the correct position
+                    particleSystem.setOverlayImage(glitched, overlayX, overlayY);
                     particleSystem.repaint();
                 }
 
@@ -287,7 +313,7 @@ public class ReBeatBoxWindow extends JFrame {
                 public void onTimelineStateChanged(TimelineState oldState, TimelineState newState,
                                                    float durationFraction, float timelinePosition) {
                     if (newState == TimelineState.DONE) {
-                        particleSystem.setOverlayImage(null);
+                        particleSystem.setOverlayImage(null, 0, 0);
                         particleSystem.repaint();
                         snapshot.flush();
                     }
