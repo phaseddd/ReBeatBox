@@ -1,5 +1,7 @@
 package com.rebeatbox.ui;
 
+import com.rebeatbox.ui.ThemeManager;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -20,24 +22,6 @@ public class KeyboardHintPanel extends JPanel {
 
     private static final double BLACK_KEY_WIDTH_RATIO = 0.60;
     private static final double BLACK_KEY_HEIGHT_RATIO = 0.70;
-
-    private static final Color BG_COLOR = new Color(0x0a0a14);
-
-    private static final Color WHITE_IDLE_FILL = new Color(0x2A2A2A);
-    private static final Color WHITE_IDLE_BORDER = new Color(0x3A3A3A);
-    private static final Color WHITE_IDLE_LABEL = new Color(0x808080);
-
-    private static final Color BLACK_IDLE_FILL = new Color(0x1A1A1A);
-    private static final Color BLACK_IDLE_BORDER = new Color(0x2A2A2A);
-    private static final Color BLACK_IDLE_LABEL = new Color(0x606060);
-
-    private static final Color PRESSED_BORDER = new Color(0x00E5FF);
-    private static final Color PRESSED_LABEL = new Color(0x00E5FF);
-    private static final Color WHITE_PRESSED_FILL = new Color(0, 229, 255, 64);
-    private static final Color BLACK_PRESSED_FILL = new Color(0, 229, 255, 51);
-
-    private static final Font KEY_LABEL_FONT = new Font("SansSerif", Font.PLAIN, 11);
-    private static final Font NOTE_LABEL_FONT = new Font("Monospaced", Font.PLAIN, 9);
 
     private final Map<Integer, Boolean> keyHighlights = new HashMap<>();
 
@@ -89,7 +73,7 @@ public class KeyboardHintPanel extends JPanel {
     private static final KeyDef[][] ALL_ROWS = { ROW_0_KEYS, ROW_1_KEYS, ROW_2_KEYS };
 
     public KeyboardHintPanel() {
-        setBackground(BG_COLOR);
+        setBackground(ThemeManager.BG_SURFACE);
         setDoubleBuffered(true);
         setPreferredSize(new Dimension(800, PANEL_HEIGHT));
         setToolTipText("");
@@ -126,7 +110,7 @@ public class KeyboardHintPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        g2d.setColor(BG_COLOR);
+        g2d.setColor(ThemeManager.BG_SURFACE);
         g2d.fillRect(0, 0, w, h);
 
         for (int row = 0; row < ROW_COUNT; row++) {
@@ -148,28 +132,55 @@ public class KeyboardHintPanel extends JPanel {
         if (whiteKeyCount == 0) return;
         int whiteKeyWidth = w / whiteKeyCount;
 
-        // Pass 1: white keys
+        // Pass 1: idle white keys — always count, only draw if not pressed
         int whiteIdx = 0;
         for (KeyDef key : keys) {
             if (key.isBlack) continue;
-            int keyX = whiteIdx * whiteKeyWidth;
-            int keyW = whiteKeyWidth - 1;
-            drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            if (!isKeyHighlighted(key.keyCode)) {
+                int keyX = whiteIdx * whiteKeyWidth;
+                int keyW = whiteKeyWidth - 1;
+                drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            }
             whiteIdx++;
         }
 
-        // Pass 2: black keys on top
+        // Pass 2: idle black keys — always count, only draw if not pressed
         int blackKeyWidth = (int) (whiteKeyWidth * BLACK_KEY_WIDTH_RATIO);
         int blackKeyHeight = (int) (ROW_HEIGHT * BLACK_KEY_HEIGHT_RATIO);
         int blackKeyY = rowY;
 
         whiteIdx = 0;
-        for (int i = 0; i < keys.length; i++) {
-            if (keys[i].isBlack) {
-                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
-                drawSingleKey(g2d, keys[i], keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
-            } else {
+        for (KeyDef key : keys) {
+            if (!key.isBlack) {
                 whiteIdx++;
+                continue;
+            }
+            if (!isKeyHighlighted(key.keyCode)) {
+                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
+                drawSingleKey(g2d, key, keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
+            }
+        }
+
+        // Pass 3: pressed keys rendered on top — never obscured by idle keys
+        whiteIdx = 0;
+        for (KeyDef key : keys) {
+            if (key.isBlack) continue;
+            if (isKeyHighlighted(key.keyCode)) {
+                int keyX = whiteIdx * whiteKeyWidth;
+                int keyW = whiteKeyWidth - 1;
+                drawSingleKey(g2d, key, keyX, rowY, keyW, ROW_HEIGHT);
+            }
+            whiteIdx++;
+        }
+        whiteIdx = 0;
+        for (KeyDef key : keys) {
+            if (!key.isBlack) {
+                whiteIdx++;
+                continue;
+            }
+            if (isKeyHighlighted(key.keyCode)) {
+                int keyX = (whiteIdx * whiteKeyWidth) - (blackKeyWidth / 2);
+                drawSingleKey(g2d, key, keyX, blackKeyY, blackKeyWidth, blackKeyHeight);
             }
         }
     }
@@ -182,26 +193,26 @@ public class KeyboardHintPanel extends JPanel {
 
         if (key.isBlack) {
             if (pressed) {
-                fillColor = BLACK_PRESSED_FILL;
-                borderColor = PRESSED_BORDER;
-                labelColor = PRESSED_LABEL;
+                fillColor = ThemeManager.KEY_PRESSED_BLACK_FILL;
+                borderColor = ThemeManager.KEY_PRESSED_BORDER;
+                labelColor = ThemeManager.KEY_PRESSED_LABEL;
                 borderWidth = 2;
             } else {
-                fillColor = BLACK_IDLE_FILL;
-                borderColor = BLACK_IDLE_BORDER;
-                labelColor = BLACK_IDLE_LABEL;
+                fillColor = ThemeManager.KEY_IDLE_BLACK_FILL;
+                borderColor = ThemeManager.KEY_IDLE_BLACK_BORDER;
+                labelColor = ThemeManager.KEY_IDLE_BLACK_LABEL;
                 borderWidth = 1;
             }
         } else {
             if (pressed) {
-                fillColor = WHITE_PRESSED_FILL;
-                borderColor = PRESSED_BORDER;
-                labelColor = PRESSED_LABEL;
+                fillColor = ThemeManager.KEY_PRESSED_WHITE_FILL;
+                borderColor = ThemeManager.KEY_PRESSED_BORDER;
+                labelColor = ThemeManager.KEY_PRESSED_LABEL;
                 borderWidth = 2;
             } else {
-                fillColor = WHITE_IDLE_FILL;
-                borderColor = WHITE_IDLE_BORDER;
-                labelColor = WHITE_IDLE_LABEL;
+                fillColor = ThemeManager.KEY_IDLE_WHITE_FILL;
+                borderColor = ThemeManager.KEY_IDLE_WHITE_BORDER;
+                labelColor = ThemeManager.KEY_IDLE_WHITE_LABEL;
                 borderWidth = 1;
             }
         }
@@ -214,7 +225,7 @@ public class KeyboardHintPanel extends JPanel {
         g2d.drawRect(x, y, width, height);
 
         if (height >= 10 && width >= 8) {
-            g2d.setFont(KEY_LABEL_FONT);
+            g2d.setFont(new Font("SansSerif", Font.PLAIN, 10));
             g2d.setColor(labelColor);
             FontMetrics fm = g2d.getFontMetrics();
             String label = key.keyLabel;

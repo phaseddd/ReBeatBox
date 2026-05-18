@@ -1,11 +1,17 @@
 package com.rebeatbox.live;
 
 import com.rebeatbox.engine.RealtimeReceiver;
+import com.rebeatbox.ui.ThemeManager;
+import org.pushingpixels.radiance.animation.api.Timeline;
+import org.pushingpixels.radiance.animation.api.Timeline.TimelineState;
+import org.pushingpixels.radiance.animation.api.callback.TimelineCallback;
+import org.pushingpixels.radiance.animation.api.ease.Spline;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
 
 public class PadButton extends JButton {
 
@@ -14,21 +20,50 @@ public class PadButton extends JButton {
     private final String defaultLabel;
     private final int defaultMidiNote;
     private final RealtimeReceiver receiver;
-    private final Timer holdTimer;
-    private boolean pressedVisual = false;
 
     private static final int DRUM_CHANNEL = 10;
     private static final int VELOCITY = 100;
 
-    private static final Color DEFAULT_FILL = new Color(0x1A1A2E);
-    private static final Color DEFAULT_BORDER = new Color(0x2A3A5E);
-    private static final Color HOVER_FILL = new Color(0x25304A);
-    private static final Color HOVER_BORDER = new Color(0xE040FB);
-    private static final Color PRESSED_FILL = new Color(0x003344);
-    private static final Color PRESSED_BORDER = new Color(0x00E5FF);
-    private static final Color DEFAULT_TEXT = new Color(0xCCCCCC);
-    private static final Color HOVER_TEXT = new Color(0xE0E0E0);
-    private static final Color PRESSED_TEXT = new Color(0x00E5FF);
+    // State tracking for animation transitions
+    private enum State { IDLE, HOVER, PRESSED }
+    private State state = State.IDLE;
+
+    /**
+     * Linearly interpolates between two Colors for smooth Timeline transitions.
+     * Clamps t to [0,1]. Used by all animation callbacks.
+     */
+    private static Color interpolateColor(Color a, Color b, float t) {
+        float ti = Math.max(0.0f, Math.min(1.0f, t));
+        int r = (int)(a.getRed()   + ti * (b.getRed()   - a.getRed()));
+        int g = (int)(a.getGreen() + ti * (b.getGreen() - a.getGreen()));
+        int bl = (int)(a.getBlue() + ti * (b.getBlue() - a.getBlue()));
+        int alpha = (int)(a.getAlpha() + ti * (b.getAlpha() - a.getAlpha()));
+        return new Color(Math.min(255, Math.max(0, r)),
+                         Math.min(255, Math.max(0, g)),
+                         Math.min(255, Math.max(0, bl)),
+                         Math.min(255, Math.max(0, alpha)));
+    }
+
+    // Color state derived from ThemeManager (D-01, D-02) — these are the TARGET colors
+    // that Timeline animations interpolate toward
+    private static final Color DEFAULT_FILL   = ThemeManager.BG_ELEVATED;
+    private static final Color DEFAULT_BORDER = ThemeManager.BORDER_IDLE;
+    private static final Color HOVER_FILL     = new Color(0x25304A); // slightly lighter elevated — drum-pad-specific
+    private static final Color HOVER_BORDER   = ThemeManager.accentForHue(ThemeManager.HUE_DRUM_PADS);
+    private static final Color PRESSED_FILL   = new Color(0x003344); // dark cyan for contrast — drum-pad-specific per UI-SPEC
+    private static final Color PRESSED_BORDER = ThemeManager.TEXT_ACCENT;
+    private static final Color DEFAULT_TEXT   = new Color(0xCCCCCC); // dimmer than PRIMARY for idle — drum-pad-specific
+    private static final Color HOVER_TEXT     = ThemeManager.TEXT_PRIMARY;
+    private static final Color PRESSED_TEXT   = ThemeManager.TEXT_ACCENT;
+
+    // Timeline-driven animated properties — rendered by paintComponent for smooth transitions
+    private Color animatedBorderColor;  // current border color (Timeline interpolated toward target)
+    private Color animatedFillColor;    // current fill color (Timeline interpolated toward target)
+    private float animatedScale = 1.0f; // press scale bounce (1.00 normal, 0.95 pressed)
+
+    // Active Timeline instances — aborted on new transitions to prevent EDT congestion
+    private Timeline hoverTimeline;
+    private Timeline pressTimeline;
 
     public PadButton(String label, int midiNote, RealtimeReceiver receiver) {
         super(label);
@@ -38,6 +73,9 @@ public class PadButton extends JButton {
         this.defaultMidiNote = midiNote;
         this.receiver = receiver;
 
+        this.animatedBorderColor = DEFAULT_BORDER;
+        this.animatedFillColor = DEFAULT_FILL;
+
         setFocusable(false);
         setPreferredSize(new Dimension(48, 48));
         setFont(new Font("SansSerif", Font.PLAIN, 10));
@@ -46,42 +84,46 @@ public class PadButton extends JButton {
         setBorder(BorderFactory.createLineBorder(DEFAULT_BORDER, 1));
         setToolTipText(label + " (Note " + midiNote + ")");
 
-        holdTimer = new Timer(200, e -> {
-            pressedVisual = false;
-            repaint();
-        });
-        holdTimer.setRepeats(false);
-
         setupMouseListener();
     }
 
     private void setupMouseListener() {
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mousePressed(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e)) {
-                    sendNoteOn();
-                    pressedVisual = true;
-                    repaint();
-                }
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e)) {
-                    sendNoteOff();
-                    holdTimer.restart();
-                }
-            }
-
-            @Override
             public void mouseEntered(MouseEvent e) {
-                if (!pressedVisual) repaint();
+                state = State.HOVER;
+                animateBorderTo(HOVER_BORDER, 200);  // D-05: 200ms hover border in
+                animateFillTo(HOVER_FILL, 200);      // Fill transitions too for cohesion
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                if (!pressedVisual) repaint();
+                state = State.IDLE;
+                animateBorderTo(DEFAULT_BORDER, 250);  // D-05: 250ms release
+                animateFillTo(DEFAULT_FILL, 250);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
+                state = State.PRESSED;
+                sendNoteOn();
+                animateFillTo(PRESSED_FILL, 75);      // D-05: 75ms press flash
+                animateBorderTo(PRESSED_BORDER, 75);
+                animatePress();                        // D-05: 0.95x scale bounce down
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (!SwingUtilities.isLeftMouseButton(e)) return;
+                sendNoteOff();
+                // Determine target state: HOVER if mouse still over button, else IDLE
+                state = contains(e.getPoint()) ? State.HOVER : State.IDLE;
+                Color targetBorder = (state == State.HOVER) ? HOVER_BORDER : DEFAULT_BORDER;
+                Color targetFill   = (state == State.HOVER) ? HOVER_FILL   : DEFAULT_FILL;
+                animateFillTo(targetFill, 150);        // D-05: 150ms spring-back
+                animateBorderTo(targetBorder, 150);
+                animateRelease();                      // D-05: scale springs back to 1.00x
             }
 
             @Override
@@ -120,46 +162,111 @@ public class PadButton extends JButton {
         setToolTipText(label + " (Note " + midiNote + ")");
     }
 
+    /** Animates border color toward target. 200ms hover-in, 250ms hover-out. */
+    private void animateBorderTo(Color target, int durationMs) {
+        if (hoverTimeline != null) hoverTimeline.abort();
+        final Color from = this.animatedBorderColor;
+        hoverTimeline = Timeline.builder(this)
+            .setDuration(durationMs)
+            .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+            .addCallback(new TimelineCallback() {
+                @Override public void onTimelinePulse(float df, float tp) {
+                    animatedBorderColor = interpolateColor(from, target, tp);
+                    repaint();
+                }
+                @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {
+                    if (n == TimelineState.DONE) { animatedBorderColor = target; repaint(); }
+                }
+            })
+            .build();
+        hoverTimeline.play();
+    }
+
+    /** Animates fill color toward target. 75ms press-down, 150ms release-up. */
+    private void animateFillTo(Color target, int durationMs) {
+        final Color from = this.animatedFillColor;
+        Timeline fillTimeline = Timeline.builder(this)
+            .setDuration(durationMs)
+            .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+            .addCallback(new TimelineCallback() {
+                @Override public void onTimelinePulse(float df, float tp) {
+                    animatedFillColor = interpolateColor(from, target, tp);
+                    repaint();
+                }
+                @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {
+                    if (n == TimelineState.DONE) { animatedFillColor = target; repaint(); }
+                }
+            })
+            .build();
+        fillTimeline.play();
+    }
+
+    /** Animates scale down to 0.95x over 75ms (press). */
+    private void animatePress() {
+        if (pressTimeline != null) pressTimeline.abort();
+        pressTimeline = Timeline.builder(this)
+            .setDuration(75)
+            .addCallback(new TimelineCallback() {
+                @Override public void onTimelinePulse(float df, float tp) {
+                    animatedScale = 1.00f + tp * (0.95f - 1.00f);
+                    repaint();
+                }
+                @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {
+                    if (n == TimelineState.DONE) { animatedScale = 0.95f; repaint(); }
+                }
+            })
+            .build();
+        pressTimeline.play();
+    }
+
+    /** Animates scale back to 1.00x over 150ms (release spring-back). */
+    private void animateRelease() {
+        if (pressTimeline != null) pressTimeline.abort();
+        pressTimeline = Timeline.builder(this)
+            .setDuration(150)
+            .setEase(new Spline(0.4f, 0.0f, 0.2f, 1.0f))
+            .addCallback(new TimelineCallback() {
+                @Override public void onTimelinePulse(float df, float tp) {
+                    animatedScale = 0.95f + tp * (1.00f - 0.95f);
+                    repaint();
+                }
+                @Override public void onTimelineStateChanged(TimelineState o, TimelineState n, float df, float tp) {
+                    if (n == TimelineState.DONE) { animatedScale = 1.00f; repaint(); }
+                }
+            })
+            .build();
+        pressTimeline.play();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        ButtonModel model = getModel();
-        boolean hover = model.isRollover();
-        boolean pressed = pressedVisual || model.isPressed();
+        // Apply press scale transform centered on the pad
+        AffineTransform originalTransform = g2d.getTransform();
+        float cx = getWidth() / 2.0f;
+        float cy = getHeight() / 2.0f;
+        g2d.translate(cx, cy);
+        g2d.scale(animatedScale, animatedScale);
+        g2d.translate(-cx, -cy);
 
-        Color fillColor;
-        if (pressed) {
-            fillColor = PRESSED_FILL;
-        } else if (hover) {
-            fillColor = HOVER_FILL;
-        } else {
-            fillColor = DEFAULT_FILL;
-        }
-        g2d.setColor(fillColor);
+        // Draw pad body with animated colors
+        g2d.setColor(animatedFillColor);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        Color borderColor;
-        int borderWidth;
-        if (pressed) {
-            borderColor = PRESSED_BORDER;
-            borderWidth = 2;
-        } else if (hover) {
-            borderColor = HOVER_BORDER;
-            borderWidth = 1;
-        } else {
-            borderColor = DEFAULT_BORDER;
-            borderWidth = 1;
-        }
-        g2d.setColor(borderColor);
+        g2d.setColor(animatedBorderColor);
+        int borderWidth = (state == State.PRESSED) ? 2 : 1;
         g2d.setStroke(new BasicStroke(borderWidth));
         g2d.drawRect(borderWidth / 2, borderWidth / 2,
             getWidth() - borderWidth, getHeight() - borderWidth);
 
-        if (pressed) setForeground(PRESSED_TEXT);
-        else if (hover) setForeground(HOVER_TEXT);
+        // Set text color based on state
+        if (state == State.PRESSED) setForeground(PRESSED_TEXT);
+        else if (state == State.HOVER) setForeground(HOVER_TEXT);
         else setForeground(DEFAULT_TEXT);
 
+        g2d.setTransform(originalTransform);
         super.paintComponent(g);
     }
 
@@ -216,7 +323,7 @@ public class PadButton extends JButton {
         menu.addSeparator();
 
         JMenuItem resetItem = new JMenuItem("Reset to \"" + defaultLabel + "\"");
-        resetItem.setForeground(new Color(0xFF4444));
+        resetItem.setForeground(ThemeManager.DESTRUCTIVE);
         resetItem.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(this,
                 "Reset pad '" + padLabel + "' to default sound '" + defaultLabel + "'?",

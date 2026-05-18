@@ -1,12 +1,14 @@
 package com.rebeatbox.ui;
 
+import com.rebeatbox.ui.ThemeManager;
+
 import javax.swing.*;
 import java.awt.*;
 
 public class PlaceholderPanel extends JPanel {
 
     public PlaceholderPanel() {
-        setBackground(new Color(0x1a1a2e));
+        setBackground(ThemeManager.BG_ELEVATED);
     }
 
     @Override
@@ -19,13 +21,13 @@ public class PlaceholderPanel extends JPanel {
         int h = getHeight();
 
         // Dark gradient background
-        GradientPaint gradient = new GradientPaint(0, 0, new Color(0x1a1a2e), 0, h, new Color(0x16213e));
+        GradientPaint gradient = new GradientPaint(0, 0, ThemeManager.BG_ELEVATED, 0, h, ThemeManager.BG_SURFACE);
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, w, h);
 
         // Title
         g2d.setFont(new Font("SansSerif", Font.BOLD, 18));
-        g2d.setColor(new Color(0xe0e0e0));
+        g2d.setColor(ThemeManager.TEXT_PRIMARY);
         String title = "ReBeatBox";
         FontMetrics fmTitle = g2d.getFontMetrics();
         int titleX = (w - fmTitle.stringWidth(title)) / 2;
@@ -33,9 +35,9 @@ public class PlaceholderPanel extends JPanel {
         g2d.drawString(title, titleX, titleY);
 
         // Subtitle
-        g2d.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        g2d.setColor(new Color(0x888888));
-        String subtitle = "Drop a .mid file or click ▶ to open";
+        g2d.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g2d.setColor(ThemeManager.TEXT_SECONDARY);
+        String subtitle = "Drag and drop a .mid file or click the Open button";
         FontMetrics fmSub = g2d.getFontMetrics();
         int subX = (w - fmSub.stringWidth(subtitle)) / 2;
         int subY = titleY + 28;

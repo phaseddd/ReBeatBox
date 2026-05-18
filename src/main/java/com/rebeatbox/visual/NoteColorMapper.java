@@ -14,17 +14,17 @@ import java.awt.Color;
  */
 public final class NoteColorMapper {
 
-    /** Start of the hue range — purple at pitch 0. */
-    private static final float HUE_START = 0.70f;
+    /** Start of the hue range — purple at pitch 0. Referenced by ThemeManager for UI hue zones. */
+    public static final float HUE_START = 0.70f;
 
     /** Total hue span from lowest to highest pitch. */
     private static final float HUE_SPAN = 0.70f;
 
-    /** Saturation for the neon look. */
-    private static final float SATURATION = 0.85f;
+    /** Saturation for the neon look — referenced by ThemeManager accentForHue(). */
+    public static final float SATURATION = 0.85f;
 
-    /** Brightness for luminous appearance on black background. */
-    private static final float BRIGHTNESS = 0.95f;
+    /** Brightness for luminous appearance — referenced by ThemeManager accentForHue(). */
+    public static final float BRIGHTNESS = 0.95f;
 
     /** MIDI note range constants. */
     private static final int MIN_PITCH = 0;

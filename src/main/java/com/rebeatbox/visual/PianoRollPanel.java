@@ -1,6 +1,7 @@
 package com.rebeatbox.visual;
 
 import com.rebeatbox.engine.PlaybackController;
+import com.rebeatbox.ui.ThemeManager;
 
 import javax.sound.midi.Sequence;
 import javax.swing.*;
@@ -59,14 +60,15 @@ public class PianoRollPanel extends JPanel {
     /** Gap between adjacent note columns in pixels. */
     static final int COLUMN_GAP = 1;
 
-    /** GaussianBlur kernel size (odd number). */
-    private static final int BLUR_KERNEL_SIZE = 5;
+    /** GaussianBlur kernel size — increased from 5 to 7 per D-21 for stronger glow. */
+    private static final int BLUR_KERNEL_SIZE = 7;
 
-    /** GaussianBlur sigma value. */
-    private static final float BLUR_SIGMA = 2.0f;
+    /** GaussianBlur sigma — increased from 2.0 to 3.5 per D-21 for wider blur spread. */
+    private static final float BLUR_SIGMA = 3.5f;
 
-    /** Padding around each note bar BufferedImage to accommodate glow spread. */
-    private static final int BLUR_PAD = 6;
+    /** Padding around each note bar BufferedImage — increased from 6 to 8
+     *  to accommodate the wider 7x7 kernel spread (per RESEARCH.md recommendation). */
+    private static final int BLUR_PAD = 8;
 
     /** Animation timer interval in milliseconds (~62.5fps, close to 60fps per D-13). */
     private static final int TIMER_INTERVAL_MS = 16;
@@ -106,7 +108,7 @@ public class PianoRollPanel extends JPanel {
      * The controller is wired later via {@link #setController(PlaybackController)}.
      */
     public PianoRollPanel() {
-        setBackground(Color.BLACK);  // D-07
+        setBackground(ThemeManager.BG_ROOT);  // D-03: deepest background tier #0A0A14
         setDoubleBuffered(true);
     }
 
@@ -292,7 +294,7 @@ public class PianoRollPanel extends JPanel {
         if (w <= 0 || h <= 0) return;
 
         // Layer 1: Pure black background (D-07, D-08)
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(ThemeManager.BG_ROOT);
         g2d.fillRect(0, 0, w, h);
 
         // Layer 2: Note bars with GaussianBlur glow (D-07, D-08)
@@ -393,19 +395,23 @@ public class PianoRollPanel extends JPanel {
         Color baseColor = NoteColorMapper.forPitch(note.pitch());
         boolean spansTrigger = barY < tly && barBottomY > tly;
 
+        int velocity = note.velocity(); // MIDI velocity 0-127 from the pre-scanned note data
+
         if (spansTrigger) {
             // Split into two segments: above and below trigger line
             int aboveHeight = tly - barY;
             if (aboveHeight >= MIN_BAR_HEIGHT) {
-                drawGlowingBar(g2d, (int) barX, barY, barWidth, aboveHeight, baseColor, 1.0f);
+                float aboveAlpha = velocityToAlpha(velocity, true);
+                drawGlowingBar(g2d, (int) barX, barY, barWidth, aboveHeight, baseColor, aboveAlpha);
             }
             int belowY = tly;
             int belowHeight = barBottomY - tly;
             if (belowHeight >= MIN_BAR_HEIGHT) {
-                drawGlowingBar(g2d, (int) barX, belowY, barWidth, belowHeight, baseColor, 0.4f);
+                float belowAlpha = velocityToAlpha(velocity, false);
+                drawGlowingBar(g2d, (int) barX, belowY, barWidth, belowHeight, baseColor, belowAlpha);
             }
         } else {
-            float alpha = (barY >= tly) ? 0.4f : 1.0f; // below trigger = dimmed (D-06)
+            float alpha = velocityToAlpha(velocity, barY < tly);
             drawGlowingBar(g2d, (int) barX, barY, barWidth, barHeight, baseColor, alpha);
         }
     }
@@ -430,25 +436,49 @@ public class PianoRollPanel extends JPanel {
         width = Math.max(1, width);
         height = Math.max(1, height);
 
+        Composite origComposite = g2d.getComposite();
+
+        // Step 1: Draw the solid note bar at full velocity alpha.
+        // This ensures the bar is always clearly visible regardless of blur intensity.
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.setColor(color);
+        g2d.fillRect(x, y, width, height);
+
+        // Step 2: Build blurred glow halo and composite at reduced alpha.
+        // The blur spreads color into the transparent padded region; by compositing
+        // it on top of the already-solid bar, the glow enhances without dimming.
         int imgW = width + BLUR_PAD * 2;
         int imgH = height + BLUR_PAD * 2;
 
         BufferedImage barImg = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D barG = barImg.createGraphics();
-
         barG.setColor(color);
         barG.fillRect(BLUR_PAD, BLUR_PAD, width, height);
         barG.dispose();
 
-        // Apply separable GaussianBlur (horizontal + vertical pass)
         float[] kernel = buildGaussianKernel(BLUR_KERNEL_SIZE, BLUR_SIGMA);
         BufferedImage blurred = applyConvolveBlur(barImg, kernel);
 
-        // Alpha-composite the blurred note onto the main canvas
-        Composite origComposite = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.35f));
         g2d.drawImage(blurred, x - BLUR_PAD, y - BLUR_PAD, null);
         g2d.setComposite(origComposite);
+    }
+
+    /**
+     * Maps MIDI velocity (0-127) to an alpha value for note bar opacity.
+     * Higher minimum alpha than Phase 2 to ensure notes remain visible on dark background,
+     * while preserving discernible velocity brightness range.
+     *
+     * <p>Above trigger line: alpha 0.55 (vel=0) -&gt; 1.00 (vel=127)
+     * <p>Below trigger line: alpha 0.25 (vel=0) -&gt; 0.65 (vel=127)
+     */
+    private static float velocityToAlpha(int velocity, boolean aboveTrigger) {
+        float v = velocity / 127.0f;
+        if (aboveTrigger) {
+            return 0.55f + v * 0.45f;
+        } else {
+            return 0.25f + v * 0.40f;
+        }
     }
 
     /**
