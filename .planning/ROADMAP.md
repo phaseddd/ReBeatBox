@@ -11,7 +11,7 @@
 | 1 | Foundation | App shell + MIDI playback working end-to-end | 7 | — | yes |
 | 2 | Visualization | Piano roll + falling notes sync to playback | 3 | Phase 1 | yes |
 | 3 | Live Performance | Keyboard + drum pad, overlay on playback | 4 | Phase 1 | yes |
-| 4 | Visual Polish | Full cyber/glitch aesthetic | 6 | Phase 2, 3 | yes |
+| 4 | Visual Polish | ✅ Full cyber/glitch aesthetic | 6 | Phase 2, 3 | yes |
 | 5 | Content & Ship | Demo songs, polish, ship-ready | 2 | Phase 1 | no |
 
 **Execution Strategy:** Phase 2 and Phase 3 are independent — both depend only on Phase 1. They can run in parallel.
@@ -209,12 +209,12 @@ Plans:
 | LIVE-02 | Phase 3 | Pending |
 | LIVE-03 | Phase 3 | Pending |
 | LIVE-04 | Phase 3 | Pending |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
-| GLITCH-01 | Phase 4 | Pending |
-| GLITCH-02 | Phase 4 | Pending |
-| GLITCH-03 | Phase 4 | Pending |
-| GLITCH-04 | Phase 4 | Pending |
+| UI-02 | Phase 4 | ✅ |
+| UI-03 | Phase 4 | ✅ |
+| GLITCH-01 | Phase 4 | ✅ |
+| GLITCH-02 | Phase 4 | ✅ |
+| GLITCH-03 | Phase 4 | ✅ |
+| GLITCH-04 | Phase 4 | ✅ |
 | CONT-01 | Phase 5 | Pending |
 | CONT-03 | Phase 5 | Pending |
 
