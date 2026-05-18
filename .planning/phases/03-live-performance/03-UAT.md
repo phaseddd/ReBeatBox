@@ -84,14 +84,27 @@ blocked: 0
   missing: []
 
 - truth: "实时演奏与 MIDI 播放音量平衡"
-  status: open
+  status: resolved
   reason: "大音量 MIDI 文件播放时键盘/鼓垫几乎听不到——setVolume() 通过 CC 7 波及 live 通道（0, 9），且被 MIDI 文件自身 CC 7 事件覆盖"
   severity: major
   test: 9
   root_cause: "PlaybackController.setVolume() 用 CC 7 控制全部 16 通道，但 Sequencer 播放时 MIDI 文件内嵌的 CC 7 会覆盖设定值。Live 通道（0 键盘, 9 鼓）被波及后无恢复机制"
+  fix: |
+    — VolumeScaledReceiver 插在 Sequencer → Synthesizer 之间，对 NOTE_ON velocity 做乘法，替代 CC 7 广播
+    — RealtimeReceiver 新增 liveVelocity 字段 + getter/setter，控制键盘/鼓垫力度
+    — ControlBar 新增 Live Vel 滑块（1-127），MIDI Vol 默认改为 100%
+    — 加载 MIDI 文件时自动匹配 Live Vel = 文件最大力度
   artifacts:
+    - path: "src/main/java/com/rebeatbox/engine/VolumeScaledReceiver.java"
+      issue: "新增：Receiver 包装类，缩放 NOTE_ON velocity"
     - path: "src/main/java/com/rebeatbox/engine/PlaybackController.java"
-      issue: "setVolume() 无差别向 16 通道发送 CC 7，无 live 通道保护"
-  missing:
-    - "方案：Sequencer 输出经 VelocityScaledReceiver 缩放，live 路径直连 Synthesizer"
-    - "或：setVolume 跳过 Channel 0 和 Channel 9"
+      issue: "setVolume() 改用 VolumeScaledReceiver，新增加 scanMaxVelocity()"
+    - path: "src/main/java/com/rebeatbox/engine/RealtimeReceiver.java"
+      issue: "新增 liveVelocity 字段"
+    - path: "src/main/java/com/rebeatbox/ui/ControlBar.java"
+      issue: "新增 Live Vel 滑块 + 自动匹配逻辑"
+    - path: "src/main/java/com/rebeatbox/live/PadButton.java"
+      issue: "移除硬编码 VELOCITY=100，改用 receiver.getLiveVelocity()"
+    - path: "src/main/java/com/rebeatbox/ui/ReBeatBoxWindow.java"
+      issue: "键盘分发器改用 receiver.getLiveVelocity()，接线 Live Vel 回调"
+  missing: []

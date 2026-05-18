@@ -14,12 +14,14 @@ public class PlaybackController {
     private final Sequencer sequencer;
     private final Synthesizer synthesizer;
     private final NoteEventBus eventBus;
+    private final VolumeScaledReceiver volumeScaler;
     private final MidiFileLoader loader = new MidiFileLoader();
 
     private State state = State.STOPPED;
-    private float volume = 0.75f;
+    private float volume = 1.0f;
     private int bpm = 120;
     private int nativeBpm = 120;
+    private int midiMaxVelocity = 100;
     private final boolean[] activeNotes = new boolean[128];
 
     public PlaybackController(Synthesizer synthesizer, NoteEventBus eventBus) throws MidiUnavailableException {
@@ -27,7 +29,9 @@ public class PlaybackController {
         this.eventBus = eventBus;
         this.sequencer = MidiSystem.getSequencer(false);
         this.sequencer.open();
-        this.sequencer.getTransmitter().setReceiver(synthesizer.getReceiver());
+        // Interpose VolumeScaledReceiver between sequencer and synthesizer
+        this.volumeScaler = new VolumeScaledReceiver(synthesizer.getReceiver());
+        this.sequencer.getTransmitter().setReceiver(volumeScaler);
         setupMetaListener();
     }
 
@@ -130,9 +134,27 @@ public class PlaybackController {
         // Read native tempo from MIDI file instead of overriding
         this.bpm = Math.round(sequencer.getTempoInBPM());
         this.nativeBpm = this.bpm;
+        this.midiMaxVelocity = scanMaxVelocity(sequence);
         state = State.STOPPED;
         resetActiveNotes();
         eventBus.fire(Collections.emptySet());
+    }
+
+    private int scanMaxVelocity(Sequence sequence) {
+        int max = 0;
+        for (Track track : sequence.getTracks()) {
+            for (int i = 0; i < track.size(); i++) {
+                MidiMessage msg = track.get(i).getMessage();
+                if (msg instanceof ShortMessage sm && sm.getCommand() == ShortMessage.NOTE_ON && sm.getData2() > max) {
+                    max = sm.getData2();
+                }
+            }
+        }
+        return max > 0 ? max : 100;
+    }
+
+    public int getMidiMaxVelocity() {
+        return midiMaxVelocity;
     }
 
     public void play() {
@@ -173,16 +195,7 @@ public class PlaybackController {
 
     public void setVolume(float vol) {
         this.volume = Math.max(0.0f, Math.min(1.0f, vol));
-        // Send volume CC (7) to all channels
-        int midiVol = (int)(this.volume * 127);
-        try {
-            for (int ch = 0; ch < 16; ch++) {
-                ShortMessage volMsg = new ShortMessage(ShortMessage.CONTROL_CHANGE, ch, 7, midiVol);
-                synthesizer.getReceiver().send(volMsg, -1);
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to set volume: " + e.getMessage());
-        }
+        volumeScaler.setScale(this.volume);
     }
 
     public void seek(long microsecondPosition) {

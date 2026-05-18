@@ -86,6 +86,11 @@ public class ReBeatBoxWindow extends JFrame {
         this.keyboardMapper = new KeyboardMapper();
 
         controlBar.wireEngine(controller);
+        controlBar.setOnLiveVelocityChanged(velocity -> {
+            if (receiver != null) {
+                receiver.setLiveVelocity(velocity);
+            }
+        });
         pianoRollPanel.setController(controller);
 
         // Phase 4: ParticleSystem subscribes to all note-on events (D-11)
@@ -176,9 +181,10 @@ public class ReBeatBoxWindow extends JFrame {
             }
 
             boolean pressed = (id == KeyEvent.KEY_PRESSED);
+            int velocity = receiver.getLiveVelocity();
             if (pressed && !keyboardMapper.isActive(note)) {
-                receiver.noteOn(note, 100);
-                eventBus.fireLiveNoteOn(note, 100);
+                receiver.noteOn(note, velocity);
+                eventBus.fireLiveNoteOn(note, velocity);
                 keyboardMapper.setActive(note, true);
                 keyboardHintPanel.setKeyHighlighted(e.getKeyCode(), true);
             } else if (!pressed && keyboardMapper.isActive(note)) {

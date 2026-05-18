@@ -21,8 +21,7 @@ public class PadButton extends JButton {
     private final int defaultMidiNote;
     private final RealtimeReceiver receiver;
 
-    private static final int DRUM_CHANNEL = 10;
-    private static final int VELOCITY = 100;
+    private static final int DRUM_CHANNEL = 9; // MIDI 0-based: channel 9 = GM percussion (1-based channel 10)
 
     // State tracking for animation transitions
     private enum State { IDLE, HOVER, PRESSED }
@@ -137,7 +136,7 @@ public class PadButton extends JButton {
 
     private void sendNoteOn() {
         try {
-            receiver.noteOn(midiNote, VELOCITY, DRUM_CHANNEL);
+            receiver.noteOn(midiNote, receiver.getLiveVelocity(), DRUM_CHANNEL);
         } catch (Exception e) {
             System.err.println("MIDI send failed: note=" + midiNote + " channel=" + DRUM_CHANNEL);
         }

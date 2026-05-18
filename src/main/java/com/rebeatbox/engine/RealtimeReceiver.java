@@ -4,6 +4,7 @@ import javax.sound.midi.*;
 
 public class RealtimeReceiver {
     private final Receiver receiver;
+    private volatile int liveVelocity = 100;
 
     public RealtimeReceiver(Synthesizer synthesizer) throws MidiUnavailableException {
         this.receiver = synthesizer.getReceiver();
@@ -11,6 +12,14 @@ public class RealtimeReceiver {
 
     public RealtimeReceiver(Receiver receiver) {
         this.receiver = receiver;
+    }
+
+    public void setLiveVelocity(int velocity) {
+        this.liveVelocity = Math.max(1, Math.min(127, velocity));
+    }
+
+    public int getLiveVelocity() {
+        return liveVelocity;
     }
 
     public void noteOn(int noteNumber, int velocity) {

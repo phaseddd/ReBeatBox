@@ -17,12 +17,13 @@ import org.pushingpixels.radiance.animation.api.ease.Spline;
 
 public class ControlBar extends JPanel {
     private JButton restartButton, playButton, pauseButton, stopButton, openButton;
-    private JSlider bpmSlider, volumeSlider;
-    private JLabel bpmLabel, volumeLabel, timeLabel;
+    private JSlider bpmSlider, volumeSlider, liveVelSlider;
+    private JLabel bpmLabel, volumeLabel, liveVelLabel, timeLabel;
     private JProgressBar progressBar;
 
     private PlaybackController controller;
     private Consumer<JFileChooser> onFileOpen;
+    private Consumer<Integer> onLiveVelocityChanged;
     private Timer stateTimer;
 
     public ControlBar() {
@@ -50,13 +51,24 @@ public class ControlBar extends JPanel {
         add(bpmSlider);
         add(Box.createHorizontalStrut(10));
 
-        // Volume
-        volumeLabel = new JLabel("Vol: 75%");
+        // MIDI Vol (velocity scaler on sequencer output, no CC 7)
+        volumeLabel = new JLabel("MIDI: 100%");
         volumeLabel.setForeground(ThemeManager.TEXT_PRIMARY);
-        volumeSlider = new JSlider(0, 100, 75);
-        volumeSlider.setPreferredSize(new Dimension(100, 36));
+        volumeSlider = new JSlider(0, 100, 100);
+        volumeSlider.setPreferredSize(new Dimension(80, 36));
+        volumeSlider.setToolTipText("MIDI playback volume");
         add(volumeLabel);
         add(volumeSlider);
+        add(Box.createHorizontalStrut(6));
+
+        // Live Vel (keyboard + drum pad velocity)
+        liveVelLabel = new JLabel("Live: 100");
+        liveVelLabel.setForeground(ThemeManager.TEXT_PRIMARY);
+        liveVelSlider = new JSlider(1, 127, 100);
+        liveVelSlider.setPreferredSize(new Dimension(80, 36));
+        liveVelSlider.setToolTipText("Live keyboard / drum pad velocity");
+        add(liveVelLabel);
+        add(liveVelSlider);
         add(Box.createHorizontalStrut(10));
 
         // Time
@@ -113,7 +125,15 @@ public class ControlBar extends JPanel {
             if (controller != null) {
                 int vol = volumeSlider.getValue();
                 controller.setVolume(vol / 100.0f);
-                volumeLabel.setText("Vol: " + vol + "%");
+                volumeLabel.setText("MIDI: " + vol + "%");
+            }
+        });
+
+        liveVelSlider.addChangeListener(e -> {
+            int vel = liveVelSlider.getValue();
+            liveVelLabel.setText("Live: " + vel);
+            if (onLiveVelocityChanged != null) {
+                onLiveVelocityChanged.accept(vel);
             }
         });
 
@@ -159,8 +179,20 @@ public class ControlBar extends JPanel {
             int nativeBpm = controller.getNativeBPM();
             bpmSlider.setValue(nativeBpm);
             bpmLabel.setText("BPM: " + nativeBpm);
+
+            int maxVel = controller.getMidiMaxVelocity();
+            liveVelSlider.setValue(maxVel);
+            // setValue() triggers ChangeListener → updates label + callback
         }
         syncButtonStates();
+    }
+
+    public void setOnLiveVelocityChanged(Consumer<Integer> handler) {
+        this.onLiveVelocityChanged = handler;
+    }
+
+    public void setLiveVelocityValue(int velocity) {
+        liveVelSlider.setValue(velocity);
     }
 
     private void syncButtonStates() {
